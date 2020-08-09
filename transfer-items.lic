@@ -11,14 +11,23 @@ class ItemTransfer
       ]
     ]
     args = parse_args(arg_definitions)
-    @source = args.source
-    @destination = args.destination
+    if !(args.source.include?("vault"))
+      @source = "my " + args.source
+    else
+      @source = args.source
+    end
+
+    if !(args.destination.include?("vault"))
+      @destination = "my " + args.destination
+    else
+      @destination = args.destination
+    end
 
     transfer_items
   end
 
   def transfer_items
-    fput("look in my #{@source}")
+    fput("look in #{@source}")
 
     while line = get
       if line =~ /In the .*#{@source} you see/
@@ -33,8 +42,8 @@ class ItemTransfer
       .map { |full_name| full_name.split(' ') }
       .map { |parts| parts.last.sub('.', '') }
       .each do |item|
-        fput("get #{item} from my #{@source}")
-        fput("put #{item} in my #{@destination}")
+        fput("get #{item} from #{@source}")
+        fput("put #{item} in #{@destination}")
       end
   end
 end
