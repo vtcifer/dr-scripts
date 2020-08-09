@@ -1449,3 +1449,12 @@ wand_watcher_no_use_scripts:  # Don't try to grab any wands while these scripts 
 
 wand_watcher_startup_delay: 10  # Wait n seconds on startup before doing anything   [Optional - defaults to 10 s]
 wand_watcher_passive_delay: 60  # How long to wait between checks for reusing wands [Optional - defaults to 60 s]
+
+# settings for tarantula: (HE 2019 gift)
+# See: https://elanthipedia.play.net/Lich_script_repository#tarantula for details
+tarantula:
+tarantula_excluded_skills:
+tarantula_noun: biomechanical tarantula
+tarantula_startup_delay: 15
+tarantula_no_use_scripts:
+tarantula_debug: false
