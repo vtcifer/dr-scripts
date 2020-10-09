@@ -73,7 +73,7 @@ before_dying do
   scripts.each do |script_name|
     stop_script(script_name) if Script.running?(script_name)
   end
-  fput('release cyclic')
+  fput('release cyclic') if %w[Bard Cleric Empath Moon\ Mage Necromancer Paladin Ranger Trader Warrior\ Mage].include?(DRStats.guild)
 end
 
 T2.new
