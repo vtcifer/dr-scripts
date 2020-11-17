@@ -831,6 +831,7 @@ class DRYamlValidator
         error("Entry in faux_atmo_items list has no verbs property. This may cause problems with the faux-atmo script. #{item}")
       end
     end
+  end
 
   def assert_that_wand_settings_are_valid(settings)
     return if settings.wands.empty?
