@@ -89,6 +89,11 @@ charged_maneuvers:
   Staves: twirl
   Polearms: impale
   Dual Wield: doublestrike
+# If "Charged Maneuver" is set in your training_abilities, this setting
+# will prioritize dual wield attacks by temporarily wielding an "aiming trainable"
+# in your offhand when you're holding a one-handed weapon in your main hand.
+# If this is false then a charged manuever for your main hand weapon is used instead.
+prioritize_maneuver_doublestrike: false
 # Defines the number of monsters you will keep in combat with you by performing 'dance actions' or attacking with only 'harmless: true' spells. 0 means kill everything.
 dance_threshold: 0
 # What weapon skill to use while dancing
@@ -427,8 +432,12 @@ stored_cambrinth: false
 prep_scaling_factor: 0.85
 # used with use_auto_mana. How often it will check discerns in hours. Lower circle/ranks should check more often.
 check_discern_timer_in_hours: 24 # i.e., checking every 24 hours
-# force kneeling to engage khris
+# Thief only - kneel to activate khri
+# With sufficient skill, you can activate while standing
 kneel_khri: false
+# Barbarian only - kneel to activate barbarian meditation
+# With the Yogi mastery, you can meditate while standing
+sit_to_meditate: false
 cambrinth_items:
 - name:
   cap:
@@ -1913,3 +1922,18 @@ runestone_purchase: false
 ### Roomnumbers.lic Settings:
 roomnumbers_display_exits: true
 roomnumbers_display_stringproc_exits: false
+
+# ESP Settings
+# List the channels you want to subscribe to when `esp` script runs.
+# You'll unsubscribe from any channels not listed.
+esp_channels:
+  - General
+  - Trade
+  - Guild
+  - Race
+  - Local
+  - Private
+  - Personal
+
+# Which channel to set you up to send to by default.
+esp_default_channel: General
