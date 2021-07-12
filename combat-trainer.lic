@@ -275,6 +275,12 @@ class SetupProcess
       DRCMM.wear_moon_weapon?
     end
 
+    # Reset state that was specific to the prior weapon.
+    # This prevents, for example, attempting to do a powershot maneuver
+    # as soon as you equip another ranged weapon before you've had
+    # a chance to load it because the game_state thinks you're still holding a loaded weapon.
+    game_state.loaded = false
+
     # Prepare the next weapon
     if next_summoned
       game_state.prepare_summoned_weapon(last_summoned)
@@ -2054,16 +2060,19 @@ class AbilityProcess
     @buffs.each do |action, cooldown|
       timer = game_state.cooldown_timers[action]
       next unless !timer || (Time.now - timer).to_i > cooldown
+
       game_state.cooldown_timers[action] = Time.now
       fput action
       waitrt?
     end
+
     @khri
       .map { |name| "Khri #{name}" }
       .each do |name|
         next if game_state.danger && DRCA.kneel_for_khri?(@kneel_khri, name)
         timer = game_state.cooldown_timers[name]
         next unless !timer || (Time.now - timer).to_i > 30
+
         if DRCA.activate_khri?(@kneel_khri, name)
           game_state.cooldown_timers[name] = Time.now
           echo "Activated khri #{name}" if $debug_mode_ct
@@ -2071,12 +2080,14 @@ class AbilityProcess
           echo "Did not activate khri #{name}" if $debug_mode_ct
         end
       end
+
     @barb_buffs
       .select { |name| Flags["ap-#{name}-expired"] }
       .reject { |name| DRSpells.active_spells[name] }
       .each do |name|
         timer = game_state.cooldown_timers[name]
         next unless !timer || (Time.now - timer).to_i > 30
+
         if name == 'Tsunami' && (!game_state.melee_weapon_skill? || DRC.right_hand.nil? || DRC.right_hand.empty?)
           echo "Not activating barb_buff #{name} because you're not currently wielding a melee weapon. Will retry when you're training melee weapons." if $debug_mode_ct
         elsif DRStats.mana < @barb_buffs_inner_fire_threshold
@@ -2161,14 +2172,42 @@ class TrainerProcess
     @training_abilities = settings.training_abilities
     echo("  @training_abilities: #{@training_abilities}") if $debug_mode_ct
 
-    @skill_map = { 'Hunt' => 'Perception', 'Pray' => 'Theurgy', 'PercMana' => 'Attunement', 'Almanac' => 'Anything',
-                   'Perc' => 'Attunement', 'Astro' => 'Astrology', 'App' => 'Appraisal', 'PrayerMat' => 'Theurgy', 'Flee' => 'Athletics',
-                   'App Quick' => 'Appraisal', 'App Careful' => 'Appraisal', 'Tactics' => 'Tactics', 'Analyze' => 'Tactics',
-                   'Scream' => 'Bardic Lore', 'Perc Health' => 'Empathy', 'Khri Prowess' => 'Debilitation', 'Teach' => 'Scholarship',
-                   'Stealth' => 'Stealth', 'Ambush Stun' => settings.stun_skill, 'Ambush Choke' => 'Debilitation', 'App Pouch' => 'Appraisal',
-                   'Favor Orb' => 'Anything', 'Charged Maneuver' => 'Expertise', 'Meraud' => 'Theurgy', 'Recall' => 'Scholarship',
-                   'Barb Research Warding' => 'Warding', 'Barb Research Augmentation' => 'Augmentation', 'App Bundle' => 'Appraisal',
-                   'Barb Research Debilitation' => 'Debilitation', 'Barb Research Utility' => 'Utility', 'Collect' => 'Outdoorsmanship', 'Smite' => 'Conviction', 'Locks' => 'Locksmithing', 'Tessera' => 'Trading' }
+    @skill_map = {
+      'Almanac' => 'Anything',
+      'Ambush Choke' => 'Debilitation',
+      'Ambush Stun' => settings.stun_skill,
+      'Analyze' => 'Tactics',
+      'App Bundle' => 'Appraisal',
+      'App Careful' => 'Appraisal',
+      'App Pouch' => 'Appraisal',
+      'App Quick' => 'Appraisal',
+      'App' => 'Appraisal',
+      'Astro' => 'Astrology',
+      'Barb Research Augmentation' => 'Augmentation',
+      'Barb Research Debilitation' => 'Debilitation',
+      'Barb Research Utility' => 'Utility',
+      'Barb Research Warding' => 'Warding',
+      'Charged Maneuver' => 'Expertise',
+      'Collect' => 'Outdoorsmanship',
+      'Favor Orb' => 'Anything',
+      'Flee' => 'Athletics',
+      'Hunt' => 'Perception',
+      'Khri Prowess' => 'Debilitation',
+      'Locks' => 'Locksmithing',
+      'Meraud' => 'Theurgy',
+      'Perc Health' => 'Empathy',
+      'Perc' => 'Attunement',
+      'PercMana' => 'Attunement',
+      'Pray' => 'Theurgy',
+      'PrayerMat' => 'Theurgy',
+      'Recall' => 'Scholarship',
+      'Scream' => 'Bardic Lore',
+      'Smite' => 'Conviction',
+      'Stealth' => 'Stealth',
+      'Tactics' => 'Tactics',
+      'Teach' => 'Scholarship',
+      'Tessera' => 'Trading'
+    }
 
     @skill_map['Hunt'] = %w[Perception Scouting] if DRStats.ranger?
     @favor_god = settings.favor_god
@@ -2330,6 +2369,9 @@ class TrainerProcess
     when /^Favor Orb$/i
       fput("rub my #{@favor_god} orb")
     when /^Charged Maneuver$/i
+      # This tells the attack process to perform a combat maneuver as soon as it can.
+      # Depending on cooldowns and which weapon is equipped, it may not be immediate.
+      # Once a maneuver is performed then this flag gets reset to false.
       game_state.use_charged_maneuvers = true
     when /^Meraud$/i
       meraud_commune(game_state)
@@ -2834,9 +2876,12 @@ class AttackProcess
     Flags.add('ct-ranged-ammo', "(you (?<action>fire|poach|snipe) an?|your) (?<prefix>[^\.!]*? )?#{ammo_pattern}(?<suffix> [^\.!]*?)?? (at|passes through)")
     Flags.add('ct-powershot-ammo', "With a loud twang, you let fly your #{ammo_pattern}!")
     Flags.add('ct-ranged-loaded', 'You reach into', 'You load', 'You carefully load', 'already loaded', 'in your hand')
+    Flags.add('ct-using-repeating-crossbow', /Your repeating crossbow/i, /Your repeating arbalest/i, /Your marksman's arbalest/i, /Your assassin's crossbow/i, /Your riot crossbow/i, /You .* ammunition (chamber|store)/, /already loaded with as much ammunition as it can hold/, /You realize readying more than one/)
     Flags.add('ct-aim-failed', 'you stop aiming', 'stop concentrating on aiming')
     Flags.add('ct-ranged-ready', 'You think you have your best shot possible now.')
     Flags.add('ct-face-what', 'Face what')
+    Flags.add('ct-maneuver-cooldown-reduced', "With expert skill you end the attack and maneuver into a better position")
+    Flags.add('ct-attack-out-of-range', "You aren't close enough to attack")
   end
 
   def execute(game_state)
@@ -2881,12 +2926,14 @@ class AttackProcess
   def check_face(game_state)
     return unless Flags['ct-face-what']
 
-    fput("eng #{game_state.npcs.first}")
+    fput("engage #{game_state.npcs.first}")
     Flags.reset('ct-face-what')
   end
 
   def attack_melee(charged_maneuver, game_state)
     waitrt?
+
+    maneuver_success = false
     if charged_maneuver
       # If you're prioritizing doublestrike but only wielding one melee weapon
       # then temporarily wield a second weapon offhand to perform the maneuver.
@@ -2899,10 +2946,13 @@ class AttackProcess
         end
       end
 
-      use_charged_maneuver(charged_maneuver, game_state)
+      maneuver_success = use_charged_maneuver(charged_maneuver, game_state)
 
       game_state.sheath_offhand_weapon(skill) if offhand_weapon_name
-    else
+    end
+
+    # If we didn't try a maneuver, or we did but it wasn't successful, then fallback to normal attack.
+    unless maneuver_success
       if game_state.backstab? || game_state.use_stealth_attack? || game_state.ambush?
         hide?(@hide_type)
       end
@@ -2919,7 +2969,7 @@ class AttackProcess
         end
       end
 
-      bput(command, 'Wouldn\'t it be better if you used a melee weapon?', 'You turn to face', 'Face What?', 'Roundtime', "You aren't close enough to attack", 'It would help if you were closer', 'There is nothing else to face!', 'You must be hidden', 'flying too high for you to attack', 'Bumbling, you slip')
+      bput(command, 'Wouldn\'t it be better if you used a melee weapon?', 'You turn to face', 'Face What?', 'Roundtime', "You aren't close enough to attack", 'It would help if you were closer', 'There is nothing else to face!', 'You must be hidden', 'flying too high for you to attack', 'Bumbling, you slip', 'You can not slam with that')
     end
 
     pause
@@ -3019,7 +3069,6 @@ class AttackProcess
   end
 
   def attack_aimed(charged_maneuver, game_state)
-    game_state.selected_maneuver = charged_maneuver unless game_state.loaded
     game_state.loaded = false if game_state.mob_died && !(game_state.casting_consume || game_state.prepare_consume)
     game_state.clear_aim_queue if Flags['ct-ranged-ready']
 
@@ -3029,19 +3078,14 @@ class AttackProcess
     end
 
     if game_state.loaded && (game_state.done_aiming? || (Time.now - @firing_timer).to_i >= @firing_delay)
-      if game_state.selected_maneuver
-        use_charged_maneuver(game_state.selected_maneuver, game_state)
-        game_state.action_taken
-      else
-        command = if game_state.use_stealth_ranged? && hide?(@hide_type)
-                    @stealth_attack_aimed_action
-                  elsif game_state.use_stealth_attack? && hide?(@hide_type)
-                    @stealth_attack_aimed_action
-                  else
-                    'shoot'
-                  end
-        shoot_aimed(command, game_state)
-      end
+      command = if game_state.use_stealth_ranged? && hide?(@hide_type)
+                  @stealth_attack_aimed_action
+                elsif game_state.use_stealth_attack? && hide?(@hide_type)
+                  @stealth_attack_aimed_action
+                else
+                  'shoot'
+                end
+      shoot_aimed(command, game_state)
       game_state.loaded = false
       waitrt?
     elsif game_state.loaded && !game_state.aiming_trainables.empty?
@@ -3096,8 +3140,12 @@ class AttackProcess
         /You load/,
         /You carefully load/,
         /already loaded/,
-        /in your hand/
+        /in your hand/,
+        /A rapid series of clicks/,
+        /into firing position/,
+        /You realize readying/
       ]
+
       load_weapon_failure = [
         /As you try to reach/,
         /You don't have the proper ammunition/,
@@ -3105,7 +3153,12 @@ class AttackProcess
         /What weapon are you trying to load/,
         /Such a feat would be impossible without the winds to guide/,
         /but are unable to draw upon its majesty/,
-        /without steadier hands/
+        /without steadier hands/,
+        /You can not load .* in your left hand/,
+        /You attempt to ready your/,
+        /Push what?/,
+        /It's best to hold/,
+        /pushing that would have any effect/
       ]
 
       dual_load = game_state.dual_load?
@@ -3129,29 +3182,53 @@ class AttackProcess
         # Occasionally, there may be no game output after loading.
         # To be on the safe side, we do two attempts to get output.
         Flags.reset('ct-ranged-loaded')
+        Flags.reset('ct-using-repeating-crossbow')
+
         load_weapon_result = bput('load', { 'timeout' => 1, 'suppress_no_match' => true }, *load_weapon_success, *load_weapon_failure)
         load_weapon_result = bput('load', *load_weapon_success, *load_weapon_failure) unless Flags['ct-ranged-loaded']
+        waitrt?
+
         case load_weapon_result
         when *load_weapon_failure
-          DRC.message("Unable to load #{game_state.weapon_name}, you may be out of ammunition, dancing until can switch to next weapon")
-          game_state.loaded = false
-          game_state.clear_aim_queue
-          dance(game_state)
-          # Increment action count so that the script
-          # will eventually progress to next skill to train.
-          game_state.action_taken(99)
-        else
+          abort_attack_aimed(game_state)
+          return
+        when *load_weapon_success
+          # Check if loading a repeating crossbow because we need to then push ammo into the chamber
+          if Flags['ct-using-repeating-crossbow']
+            case bput("push my #{game_state.weapon_name}", *load_weapon_success, *load_weapon_failure)
+            when *load_weapon_failure
+              abort_attack_aimed(game_state)
+              return
+            end
+          end
           game_state.loaded = true
         end
       end
 
       waitrt?
-      unless game_state.selected_maneuver
-        game_state.set_aim_queue
-        aim(game_state)
-        Flags.reset('ct-ranged-ready')
+
+      if game_state.loaded
+        # If we successfully perform a maneuver then count that as our action.
+        # Otherwise begin aiming for normal shot.
+        if charged_maneuver && use_charged_maneuver(charged_maneuver, game_state)
+          game_state.action_taken
+        else
+          game_state.set_aim_queue
+          aim(game_state)
+          Flags.reset('ct-ranged-ready')
+        end
       end
     end
+  end
+
+  def abort_attack_aimed(game_state)
+    DRC.message("Unable to load #{game_state.weapon_name}, you may be out of ammunition, dancing until can switch to next weapon")
+    game_state.loaded = false
+    game_state.clear_aim_queue
+    dance(game_state)
+    # Increment action count so that the script
+    # will eventually progress to next skill to train.
+    game_state.action_taken(99)
   end
 
   def execute_aiming_action?(action, game_state)
@@ -3175,31 +3252,40 @@ class AttackProcess
   end
 
   def aim(game_state)
-    case bput('aim', 'You begin to target', 'You are already', 'There is nothing else', 'Face what\?', 'You shift your target', 'Your repeating crossbow', 'Your assassin\'s crossbow', 'Your repeating arbalest', 'Strangely, you don\'t feel like fighting right now', 'Your riot crossbow', 'In one frozen moment', "isn't loaded", "You don't have a ranged weapon to aim with")
-    when 'You are already', 'You begin to target'
+    aim_success_messages = [
+      /You are already/,
+      /You begin to target/,
+      /You shift your target/,
+      /In one frozen moment/ # Syamelyo Kuniyo spell effect
+    ]
+
+    unloaded_messages = [
+      /isn't loaded/,
+      /You don't have a ranged weapon to aim with/
+    ]
+
+    no_enemy_messages = [
+      /There is nothing else/,
+      /Face what/
+    ]
+
+    wait_and_retry_messages = [
+      /Strangely, you don't feel like fighting right now/
+    ]
+
+    case bput("aim", *aim_success_messages, *unloaded_messages, *no_enemy_messages, *wait_and_retry_messages)
+    when *aim_success_messages
       game_state.loaded = true
       check_firing_time
-    when 'Your repeating crossbow', 'Your assassin\'s crossbow', 'Your riot crossbow'
-      case bput('push my cross', 'A rapid series of clicks', 'You attempt to ready your repeating crossbow', 'You attempt to ready your assassin\'s crossbow', 'You attempt to ready your riot crossbow','You realize readying')
-      when 'A rapid series of clicks','You realize readying'
-        aim(game_state)
-      when 'You attempt to ready your repeating crossbow', 'You attempt to ready your assassin\'s crossbow', 'You attempt to ready your riot crossbow', "isn't loaded"
-        game_state.loaded = false
-      end
-    when 'Your repeating arbalest'
-      case bput('push my arbalest', 'A rapid series of clicks', 'You attempt to ready your repeating arbalest')
-      when 'A rapid series of clicks'
-        aim(game_state)
-      when 'You attempt to ready your repeating arbalest'
-        game_state.loaded = false
-      end
-    when "isn't loaded", "You don't have a ranged weapon to aim with"
+    when *unloaded_messages
       game_state.loaded = false
-    when 'Face what?'
+    when *no_enemy_messages
       game_state.clear_aim_queue
-    when 'Strangely, you don\'t feel like fighting right now'
+    when *wait_and_retry_messages
       pause 1
       aim(game_state)
+    else
+      game_state.loaded = false
     end
   end
 
@@ -3219,40 +3305,103 @@ class AttackProcess
   end
 
   def check_charged_maneuver(game_state)
-    return nil unless game_state.use_charged_maneuvers
-    return nil unless game_state.charged_maneuver
-
-    timer = game_state.cooldown_timers[game_state.charged_maneuver]
-    return nil if timer && (Time.now - timer).to_i < 60
-
-    echo "***Ready to use charged maneuver: #{game_state.charged_maneuver}***" if $debug_mode_ct
-    game_state.charged_maneuver
+    # Determines the next maneuver to do that's not on cooldown
+    maneuver = game_state.determine_charged_maneuver
+    return nil unless maneuver
+    echo "***Ready to use charged maneuver: #{maneuver}***" if $debug_mode_ct
+    maneuver
   end
 
   def use_charged_maneuver(action, game_state)
-    game_state.cooldown_timers[action] = Time.now
+    return false unless action
 
     Flags.reset('ct-powershot-ammo')
+    Flags.reset('ct-maneuver-cooldown-reduced')
+    Flags.reset('ct-attack-out-of-range')
 
-    attempt = bput("maneuver #{action}", 'You raise your', 'You brace your', 'balanced and', 'Taking a full step back', 'You take a step back', 'You lower your shoulders', 'You angle to the side and ', 'rest a bit longer', 'You square up your feet', 'You crouch down', 'You step to the side')
-    return if attempt == 'rest a bit longer'
+    maneuver_success_messages = [
+      /^You raise your weapons before you and prepare to strike/,
+      /^Taking a full step back/,
+      /^You take a step back/,
+      /^You lower your shoulders/,
+      /^You angle to the side/,
+      /^You square up your feet/,
+      /^You crouch down/,
+      /^You step to the side/,
+      /^Swiftly, you attempt to/,
+      /^You brace your .* to increase the power of the next shot/
+    ]
 
-    # Maneuvers have extra non-RT delays
-    pause 7
+    maneuver_failure_messages = [
+      # Your ranged weapon is unloaded
+      /^You prepare the shot, but stop when you realize/,
+      # Maneuver is still on cooldown
+      /^You must rest a bit longer before attempting that maneuver again/,
+      # Trying to suplex but you're not grappled
+      /^You must first be grappled with an enemy/,
+      # Trying to doublestrike with a weapon that requires two hands (e.g. quarterstaff or long polearm)
+      /^You must free up your left hand first/,
+      # Trying to doublestrike without wielding two, one-handed melee weapons
+      /^This works best when you use a suitable weapon/,
+      /^This works best when you are dual wielding suitable weapons/,
+      # Maneuver requires a weapon but you're not wielding any
+      /^With your fist?  That might hurt/
+    ]
+
+    attempt = bput("maneuver #{action}", *maneuver_success_messages, *maneuver_failure_messages)
+
     waitrt?
 
-    # Only react to the powershot flag if we just did a powershot manuever.
-    # This is an added protection in case the flag was tripped by an unrelated
-    # action like throwing a weapon. This way we don't try to "stow my throwing hammer"
-    # after a 'maneuver cleave' action, for example.
-    if Flags['ct-powershot-ammo'] && action == 'powershot'
-      # When the flag matches game output then the value of the flag
-      # is the regular expression matches. This is how we know the ammo to stow.
-      stow_ammo(Flags['ct-powershot-ammo'][:ammo])
-      Flags.reset('ct-powershot-ammo')
-    end
+    return false if Flags['ct-attack-out-of-range']
 
-    game_state.use_charged_maneuvers = false
+    case attempt
+    when /^You must rest a bit longer before attempting that maneuver again/
+      # Barbarians who reduced the cooldown on this maneuver last time
+      # could have reduced it to anywhere between 45-55 seconds.
+      # We optimistically assumed 45 seconds. If that wasn't enough then
+      # we'll wait another 15 seconds and retry.
+      game_state.cooldown_timers[action] += 15
+      return false
+    when *maneuver_failure_messages
+      return false
+    when *maneuver_success_messages
+      # Only react to the powershot flag if we just did a powershot manuever.
+      # This is an added protection in case the flag was tripped by an unrelated
+      # action like throwing a weapon. This way we don't try to "stow my throwing hammer"
+      # after a 'maneuver cleave' action, for example.
+      if Flags['ct-powershot-ammo'] && action == 'powershot'
+        # When the flag matches game output then the value of the flag
+        # is the regular expression matches. This is how we know the ammo to stow.
+        stow_ammo(Flags['ct-powershot-ammo'][:ammo])
+        Flags.reset('ct-powershot-ammo')
+        # When dual loading, powershot only fires one of the arrows.
+        # So let's take advantage of the remaining arrow that's still loaded.
+        if game_state.dual_load?
+          shoot_aimed('shoot', game_state)
+        end
+        game_state.loaded = false
+      end
+
+      # Woot! Barbarian reduced their maneuver cooldown so
+      # they can retry this specific ability sooner rather than later.
+      if Flags['ct-maneuver-cooldown-reduced'] && DRStats.barbarian?
+        # The new cooldown is somewhere between 45-55 seconds.
+        # We'll be optimistic and hope we got the shorter cooldown.
+        # If we didn't then next time around we'll add a few more seconds
+        # to finish out a 60 second cooldown.
+        game_state.cooldown_timers[action] = Time.now + 45
+        Flags.reset('ct-maneuver-cooldown-reduced')
+      else
+        # No special favors for you. Full cooldown!
+        game_state.cooldown_timers[action] = Time.now + 90
+      end
+
+      # Toggle off using charged maneuvers until
+      # training ability process toggles it back for training
+      game_state.use_charged_maneuvers = false
+
+      return true
+    end
   end
 
   def stow_ammo(ammo = nil, quantity = 1)
@@ -3403,12 +3552,12 @@ class GameState
   $melee_skills = ['Small Edged', 'Large Edged', 'Twohanded Edged', 'Small Blunt', 'Large Blunt', 'Twohanded Blunt', 'Staves', 'Polearms']
   $thrown_skills = ['Heavy Thrown', 'Light Thrown']
   $twohanded_skills = ['Twohanded Edged', 'Twohanded Blunt']
-  $aim_skills = %w[Bow Slings Crossbow]
+  $aim_skills = ['Bow', 'Slings', 'Crossbow']
   $ranged_skills = $thrown_skills + $aim_skills
   $non_dance_skills = $ranged_skills + ['Brawling', 'Offhand Weapon']
   $tactics_actions = %w[bob weave circle]
 
-  attr_accessor :mob_died, :last_weapon_skill, :danger, :parrying, :casting, :need_bundle, :cooldown_timers, :no_stab_current_mob, :loaded, :selected_maneuver, :cast_timer, :casting_moonblade, :casting_weapon_buff, :use_charged_maneuvers, :casting_consume, :prepare_consume, :casting_cfb, :prepare_cfb, :wounds, :blessed_room, :currently_whirlwinding, :whirlwind_trainables, :reset_stance, :charges_total, :casting_sorcery, :hide_on_cast, :regalia_cancel, :last_regalia_type, :swap_regalia_type, :casting_regalia, :starlight_values, :casting_cyclic
+  attr_accessor :mob_died, :last_weapon_skill, :danger, :parrying, :casting, :need_bundle, :cooldown_timers, :no_stab_current_mob, :loaded, :cast_timer, :casting_moonblade, :casting_weapon_buff, :use_charged_maneuvers, :casting_consume, :prepare_consume, :casting_cfb, :prepare_cfb, :wounds, :blessed_room, :currently_whirlwinding, :whirlwind_trainables, :reset_stance, :charges_total, :casting_sorcery, :hide_on_cast, :regalia_cancel, :last_regalia_type, :swap_regalia_type, :casting_regalia, :starlight_values, :casting_cyclic
 
   def initialize(settings, equipment_manager)
     @equipment_manager = equipment_manager
@@ -3423,7 +3572,6 @@ class GameState
     @cooldown_timers = {}
     @no_stab_current_mob = false
     @loaded = false
-    @selected_maneuver = nil
     @cast_timer = nil
     @casting_moonblade = false
     @casting_sorcery = false
@@ -3526,9 +3674,16 @@ class GameState
 
     @charged_maneuvers = settings.charged_maneuvers
     echo("  @charged_maneuvers: #{@charged_maneuvers}") if $debug_mode_ct
+    # Initialize the maneuver timers. This avoids a later issue where a number
+    # is assigned to the cooldown rather than a Time and then crash with error
+    # when we compare a Time object with a number wanting to know if ability is off cooldown.
+    @charged_maneuvers.each_value { |maneuver| @cooldown_timers[maneuver.downcase] = Time.now }
 
     @prioritize_maneuver_doublestrike = settings.prioritize_maneuver_doublestrike
     echo("  @prioritize_maneuver_doublestrike: #{@prioritize_maneuver_doublestrike}") if $debug_mode_ct
+
+    @doublestrike_trainables = settings.doublestrike_trainables & settings.weapon_training.keys # Intersection of the arrays to make sure weapons are available in the hunt
+    echo("  @doublestrike_trainables: #{@doublestrike_trainables}") if $debug_mode_ct
 
     @fatigue_regen_threshold = settings.fatigue_regen_threshold
     echo("  @fatigue_regen_threshold: #{@fatigue_regen_threshold}") if $debug_mode_ct
@@ -3628,10 +3783,13 @@ class GameState
 
     @is_empath = DRStats.empath?
     echo("  @is_empath: #{@is_empath}") if $debug_mode_ct
+
     @construct_mode = settings.construct(false)
     echo("  @construct_mode: #{@construct_mode}") if $debug_mode_ct
+
     @is_permashocked = settings.permashocked
     echo("  @is_permashocked: #{@is_permashocked}") if $debug_mode_ct
+
     @undead_mode = settings.undead(false)
     echo("  @undead_mode: #{@undead_mode}") if $debug_mode_ct
   end
@@ -3899,8 +4057,8 @@ class GameState
     @use_stealth_attacks && use_stealth?
   end
 
-  def use_stealth_ranged? # new
-    @use_stealth_ranged && use_stealth? # new
+  def use_stealth_ranged?
+    @use_stealth_ranged && use_stealth?
   end
 
   def ambush?
@@ -3920,12 +4078,28 @@ class GameState
     @retreating
   end
 
-  def charged_maneuver
-    if !twohanded_weapon_skill? && (@currently_whirlwinding || (@prioritize_maneuver_doublestrike && melee_weapon_skill?))
-      @charged_maneuvers['Dual Wield']
-    else
-      @charged_maneuvers[weapon_skill]
+  def charged_maneuver_off_cooldown?(maneuver)
+    # Non-Barbarians can perform a maneuver every 90 seconds.
+    # Barbarians have a chance to reduce that to 60 seconds.
+    # To account for the adjustable cooldown, the timer we store
+    # for maneuvers is the future time when it'll be ready rather
+    # than the start time as we do with other ability timers.
+    # This allows us to shorten or lengthen the "time when it'll be ready".
+    timer = @cooldown_timers[maneuver]
+    timer.nil? || (Time.now > timer)
+  end
+
+  def determine_charged_maneuver
+    return nil unless @use_charged_maneuvers
+    maneuver = nil
+    can_dual_wield_whirlwind = @currently_whirlwinding && !twohanded_weapon_skill?
+    can_dual_wield_doublestrike = @prioritize_maneuver_doublestrike && doublestrikable_weapon_skill?
+    if charged_maneuver_off_cooldown?(@charged_maneuvers['Dual Wield']) && (can_dual_wield_whirlwind || can_dual_wield_doublestrike)
+      maneuver = @charged_maneuvers['Dual Wield']
+    elsif charged_maneuver_off_cooldown?(@charged_maneuvers[weapon_skill])
+      maneuver = @charged_maneuvers[weapon_skill]
     end
+    maneuver
   end
 
   def fatigue_low?
@@ -4190,6 +4364,7 @@ class GameState
     @construct_mode
   end
 
+  # Determine the weapon skill to train offhand while aiming a ranged weapon.
   def determine_aiming_skill
     options = @aiming_trainables
     options -= [weapon_skill] # can't be your mainhand skill
@@ -4200,14 +4375,23 @@ class GameState
     sort_by_rate_then_rank(options).first
   end
 
+  # Determine the weapon skill to equip offhand to perform a doublestrike maneuver.
   def determine_doublestrike_skill
     options = @aiming_trainables
     options -= [weapon_skill] # can't be your main hand skill, it's in your main hand
     options -= $twohanded_skills # can't be a twohanded skill, you need both hands
-    options -= $thrown_skills # shouldn't be a thrown skill, you're doing a melee attack
     options -= $martial_skills # shouldn't be brawling, you need a weapon in your offhand
     echo "determine_doublestrike_skill::options: #{options}" if $debug_mode_ct
     sort_by_rate_then_rank(options).first
+  end
+
+  # Is the main hand weapon skill suitable to perform a doublestrike maneuver?
+  # For example, the two-handed variants of Staves and Polearms are not,
+  # but their shorter, one-handed variants are.
+  # If the main hand weapon skill is doublestrikable then `determine_doublestrike_skill`
+  # is used to determine what to equip offhand to perform the maneuver.
+  def doublestrikable_weapon_skill?
+    @doublestrike_trainables.include?(weapon_skill) && (melee_weapon_skill? || thrown_skill?) && !twohanded_weapon_skill?
   end
 
   def use_stealth?
@@ -4318,6 +4502,7 @@ before_dying do
   Flags.delete('ct-powershot-ammo')
   Flags.delete('ct-ranged-ammo')
   Flags.delete('ct-ranged-loaded')
+  Flags.delete('ct-using-repeating-crossbow')
   Flags.delete('ct-ranged-ready')
   Flags.delete('ct-accuracy-ready')
   Flags.delete('ct-damage-ready')
@@ -4329,6 +4514,8 @@ before_dying do
   Flags.delete('ct-germshieldlost')
   Flags.delete('ct-itemdropped')
   Flags.delete('ct-shock-warning')
+  Flags.delete('ct-maneuver-cooldown-reduced')
+  Flags.delete('ct-attack-out-of-range')
 end
 
 $COMBAT_TRAINER = CombatTrainer.new
