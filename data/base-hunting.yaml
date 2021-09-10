@@ -926,8 +926,23 @@ hunting_zones:
   - 6850
   - 6843
   - 6849
+  # https://elanthipedia.play.net/Giant_thicket_viper_(2)               130-180
+  # Estate Holder Only - Most difficult of the Thicket Vipers
+  thicket_vipers_gap:
+  - 6855
+  - 6856
+  - 6858
+  - 6859
+  - 6860
+  - 6861
+  - 6862
+  - 6863
+  - 6864
+  - 6865
+  - 6866
+  - 6857  
   # https://elanthipedia.play.net/Forest_bandit                         160-200
-  # rank range is estimate based on critter range
+  # rank range is estimate based on critter range - Strong Magic
   forest_bandits:
   - 2434
   - 2435
@@ -950,6 +965,17 @@ hunting_zones:
   - 1277
   - 1278
   # https://elanthipedia.play.net/Dryad_priestess                        175-220
+  dryad_priestess:
+  - 9768
+  - 9769
+  - 9770
+  - 9771
+  # https://elanthipedia.play.net/Dryad_priestess                        175-220
+  # same dryads, premie only rooms
+  dryad_priestess_premium:
+  - 15795
+  - 15794
+  - 15793 
   # https://elanthipedia.play.net/Twisted_Dryad                          175-220
   dryads:
   - 9766
@@ -967,12 +993,14 @@ hunting_zones:
   - 15229
   - 15231
   - 15230
-  # https://elanthipedia.play.net/Dryad_priestess                        175-220
-  # same dryads, premie only rooms
-  dryad_priestess_premium:
-  - 15795
-  - 15794
-  - 15793
+  # https://elanthipedia.play.net/Giant_black_leucro_(2)                 180-230
+  # Estate Holder Only - most difficult of the black leucro
+  black_leucro_mill:
+  - 6840
+  - 6841
+  - 6842
+  - 6851
+  - 6839  
   # https://elanthipedia.play.net/Pale_Grey_Death_Spirit                 200-250
   # In the forest of night, uses silverclaw hub for day access
   leth_death_spirits:
@@ -1003,6 +1031,9 @@ hunting_zones:
   - 19407
   - 19409
   - 19410
+  # https://elanthipedia.play.net/Rock_guardian                          200-323
+  # same guardian - slightly harder - Estate Holder Only
+  rock_guardians_path:
   - 19412
   - 19413
   - 9096
@@ -1375,6 +1406,21 @@ hunting_zones:
   - 11508
   - 11507
   - 11503
+  # https://elanthipedia.play.net/Cloud_rat                              325-425
+  # Ranks estimate based on Creature Level 63-67
+  cloud_rats:
+  - 16540
+  - 16541
+  - 16542
+  - 16543
+  - 16538
+  - 16539
+  # https://elanthipedia.play.net/Cloud_rat                              325-425
+  # same rats - Estate Holder Only
+  cloud_rats_hollow:
+  - 16545
+  - 16546
+  - 16547  
   # https://elanthipedia.play.net/Robed_Dragon_Priest(ess)               350-500
   dragon_priests:
   - 6379
