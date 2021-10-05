@@ -3881,6 +3881,14 @@ crafting_recipes:
   chapter: 4
   part:
   - haft
+- name: a spiked metal hammer
+  noun: hammer
+  volume: 8
+  type: weaponsmithing
+  work_order: true
+  chapter: 4
+  part:
+  - haft
 - name: a flanged metal mace
   noun: mace
   volume: 9
@@ -3903,14 +3911,6 @@ crafting_recipes:
   type: weaponsmithing
   work_order: true
   chapter: 4
-- name: some metal hand claws
-  noun: claws
-  volume: 4
-  type: weaponsmithing
-  work_order: true
-  chapter: 8
-  part:
-  - short cord
 - name: some metal spiked knuckles
   noun: knuckles
   volume: 5
@@ -4321,12 +4321,6 @@ crafting_recipes:
   chapter: 9
   part:
   - haft
-- name: a stone armband
-  noun: armband
-  volume: 3
-  type: carving
-  work_order: true
-  chapter: 4
 - name: a metal splitting maul
   noun: maul
   volume: 15
@@ -6705,17 +6699,6 @@ crafting_recipes:
 - name: an oval wood table
   noun: table
   volume: 25
-  type: shaping
-  work_order: false
-  chapter: 10
-  part:
-  - long pole
-  - long pole
-  - long pole
-  - long pole
-- name: a long wood table
-  noun: table
-  volume: 30
   type: shaping
   work_order: false
   chapter: 10
