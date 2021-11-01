@@ -43,7 +43,7 @@ class SetupProcess
     if @warhorn.casecmp('egg').zero?
       @warhon_activation_command = "invoke my #{@warhorn}"
     else
-      @warhon_activation_command = "exhale my #{@warhorn} lure"
+      @warhon_activation_command = "exhale #{@warhorn} lure"
     end
 
     if DRCI.wearing?(@warhorn)
@@ -365,7 +365,7 @@ class LootProcess
     echo("  @dissect: #{@dissect}") if $debug_mode_ct
 
     @dissect_priority = skinning['dissect_priority']
-    echo("  @dissect_priority: #{@dissect_priority}") if $debug_mode_ct    
+    echo("  @dissect_priority: #{@dissect_priority}") if $debug_mode_ct
 
     @arrange_all = skinning['arrange_all'] || false
     echo("  @arrange_all: #{@arrange_all}") if $debug_mode_ct
@@ -831,7 +831,7 @@ class LootProcess
   #not necromancer related - not to be confused with the necro rituals.  According to GMs this may change but for now they are two separate functions.
   def dissected?(mob_noun, game_state)
     case bput("dissect #{mob_noun}","You'll gain no insights from this attempt", 'You succeed in dissecting the corpse','What exactly are you trying to dissect',"You'll learn nothing further",'While likely a fascinating study','You cannot dissect','would probably object',"should be left alone.","That's going to be hard","That'd be a waste of time.",'A skinned creature is worthless','You do not yet possess the knowledge')
-    when 'You succeed in dissecting the corpse'  
+    when 'You succeed in dissecting the corpse'
       return true
     when 'While likely a fascinating study',"That'd be a waste of time.",'You do not yet possess the knowledge'
       game_state.undissectable(mob_noun)
@@ -957,13 +957,15 @@ class SafetyProcess
 
   def execute(game_state)
     if @untendable_counter > 0
+      echo('Skipping tendme check due to untendable backoff') if $debug_mode_ct
       @untendable_counter -= 1
     elsif bleeding? && !Script.running?('tendme')
+      echo('Checking for tendable bleeders...') if $debug_mode_ct
       if DRCH.has_tendable_bleeders?
         custom_require.call('tendme')
       else
-        # Don't spam tendme, as it makes it take longer to actually get out of combat / cast spells, etc.
-        @untendable_counter = 10
+        echo('Setting untendable wound backoff to prevent tendme spam...') if $debug_mode_ct
+        @untendable_counter = 20
       end
     end
 
@@ -1110,6 +1112,9 @@ class SpellProcess
 
     @empath_spells = settings.empath_healing
     echo("  @empath_spells: #{@empath_spells}") if $debug_mode_ct
+
+    @empath_vitality_threshold = settings.empath_vitality_threshold
+    echo("  @empath_vitality_threshold: #{@empath_vitality_threshold}") if $debug_mode_ct
 
     @osrel_timer = Time.now - 1000
     echo("  @osrel_timer: #{@osrel_timer}") if $debug_mode_ct
@@ -1652,10 +1657,10 @@ class SpellProcess
   end
 
   def check_health_empath(game_state)
-    return if DRStats.health > 95 && @wounds.empty?
+    return if DRStats.health > @empath_vitality_threshold && @wounds.empty?
 
     if DRSpells.active_spells['Regeneration']
-      if @empath_spells['VH'] && DRStats.health <= 95
+      if @empath_spells['VH'] && DRStats.health <= @empath_vitality_threshold
         data = { 'abbrev' => 'vh', 'mana' => @empath_spells['VH'].first, 'cambrinth' => @empath_spells['VH'][1..-1], 'harmless' => true }
         prepare_spell(data, game_state)
       end
@@ -3118,25 +3123,28 @@ class AttackProcess
     # rather than relying on the first message returned from bput.
     Flags.reset('ct-ranged-ammo')
 
-    result = bput(command, 'you (fire|poach|snipe)', 'isn\'t loaded', 'There is nothing', 'But your', 'I could not find', 'with no effect and falls (to the ground|to your feet)', 'Face what', 'How can you (poach|snipe)', 'you don\'t feel like fighting right now', 'That weapon must be in your right hand to fire', 'But you don\'t have a ranged weapon in your hand to fire with')
+    result = bput(command, /you (fire|poach|snipe)/i, /isn't loaded/i, /There is nothing/i, /But your/i, /I could not find/i, /with no effect and falls (to the ground|to your feet)/i, /Face what/i, /How can you (poach|snipe)/i, /you don't feel like fighting right now/i, /That weapon must be in your right hand to fire/i, /But you don't have a ranged weapon in your hand to fire with/i)
     waitrt?
 
     case result
-    when /How can you (poach|snipe)/
+    when /How can you (poach|snipe)/i
       shoot_aimed('shoot', game_state)
-    when /That weapon must be in your right hand to fire|But you don't have a ranged weapon in your hand to fire with/
+    when /That weapon must be in your right hand to fire|But you don't have a ranged weapon in your hand to fire with/i
       # Explicitly say 'swap right' because if you're holding a swappable weapon (e.g. riste)
       # then just 'swap' will try to switch the weapon mode, not move it to other hand.
       if fput('swap right') =~ /You (swap|move)/i
         shoot_aimed(command, game_state)
       end
-    when /you don't feel like fighting right now/
+    when /you don't feel like fighting right now/i
       pause 1
       shoot_aimed(command, game_state)
-    when /you (fire|poach|snipe)|with no effect and falls (to the ground|to your feet)/
+    when /with no effect and falls (to the ground|to your feet)/i
       # If you fired without Bless at an incorporeal undead then it'll have no effect.
       # However, that's still considered an action taken, just you missed.
       game_state.action_taken
+    when /you (fire|poach|snipe)/i
+      #Successful fire, increment action_taken
+      game_state.action_taken    
     end
 
     # If detected that you shot, then stow any non-lodged ammo.
@@ -4081,12 +4089,12 @@ class GameState
 
   def dissectable?(mob_noun)
     !@no_dissect.include?(mob_noun)
-  end  
+  end
 
   def undissectable(mob_noun)
     echo("adding #{mob_noun} to no dissect list: #{@no_dissect}") if $debug_mode_ct
     @no_dissect.push(mob_noun)
-  end   
+  end
 
   def construct?(mob_noun)
     @constructs.include?(mob_noun)
@@ -4215,14 +4223,17 @@ class GameState
 
   def reset_action_count
     @action_count = 0
+    echo "Action Count reset" if $debug_mode_ct
   end
 
   def action_taken(count = 1)
     @action_count += count
+    echo "Action Count incremented to #{@action_count}" if $debug_mode_ct
   end
 
   def action_reduce(count = 1)
     @action_count -= count
+    echo "Action Count reduced to #{@action_count}" if $debug_mode_ct
   end
 
   def set_aim_queue
