@@ -1044,7 +1044,7 @@ hunting_zones:
   - 19195
   - 19196
   - 19204
-  - 19193
+# - 19193
   # https://elanthipedia.play.net/Giant_bear                             210-290
   # Super high spawn
   giant_bears:
@@ -1319,6 +1319,14 @@ hunting_zones:
   - 9692
   - 9693
   - 9694
+  # https://elanthipedia.play.net/Cadaverous_blue-belly_crocodile        100-160
+  cadaverous_crocodiles:
+  - 16683
+  - 16684
+  - 16685
+  - 16686
+  - 16687
+  - 16688  
   # https://elanthipedia.play.net/Eidolon_steed                          100-125
   # Spawn is hit or miss
   eidolon_steeds:
@@ -1390,24 +1398,22 @@ hunting_zones:
   # https://elanthipedia.play.net/Young_forest_gryphon                   300-420
   # https://elanthipedia.play.net/Fledgling_forest_gryphon_(1)           300-400
   # Good swarm, few rooms usually full
-  shard_gryphons: #fledgling/young
-  - 6239
-  - 6238
-  - 6237
-  - 6236
-  shard_gryphons1: #baby/fledgling
-  - 6239
-  - 6249
-  - 6248
-  - 6247
-  - 6246
-  shard_gryphons2: #fledgling/young (some water rooms!)
-  - 6245
+  shard_gryphons: #baby/fledgling
   - 6244
-  - 6243
+  - 6245
+  - 6246
+  - 6247
+  - 6248
+  shard_gryphons1: #fledgling/young (some water rooms!)
+  - 6240
   - 6241
   - 6242
-  - 6240
+  - 6243
+  shard_gryphons2: #fledgling/young
+  - 6236
+  - 6237
+  - 6238
+  - 6239
   # https://elanthipedia.play.net/Adan%27f_shadow_mage                   250-370
   # https://elanthipedia.play.net/Adan%27f_blood_warrior                 250-325
   # Spawn is hit or miss
@@ -1576,14 +1582,15 @@ hunting_zones:
   - 12578
   # https://elanthipedia.play.net/Adult_wyvern                         1000-1300
   adult_wyverns:
-  - 19175
   - 9038
   - 9039
   - 9040
   - 9674
   - 9675
-  - 19182
+  - 19175
+  - 19178
   - 19179
+  - 19182
   # https://elanthipedia.play.net/Ice_archon                            1200-1650
   # Good boxes, toughest in game.
   # Stomping maneuver which will break legs.
@@ -2435,6 +2442,9 @@ hunting_zones:
   - 4168
   - 4170
   - 4169
+  - 4157
+  - 4158
+  - 4143
   # https://elanthipedia.play.net/Black_ape                              490-750
   # Swarms well most of the time
   # Add 'tooth' to loot_additions, can be sold like gems
@@ -2559,6 +2569,11 @@ hunting_zones:
   - 12148
   - 12149
   - 12151
+  # https://elanthipedia.play.net/Vicious_Dragon_Priest_intercessor     1100-1600
+  # premie only rooms, higher level than the standard ones
+  vicious_intercessor:
+  - 15356
+  - 15357
   # https://elanthipedia.play.net/Jeol_moradu                           1400-1700
   jeol_moradu:
   - 15078

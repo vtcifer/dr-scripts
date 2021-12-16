@@ -245,11 +245,22 @@ class SetupProcess
     points = override || previous.values.inject(&:+)
 
     priority = if game_state.current_weapon_stance
-                 game_state.sort_by_rate_then_rank(game_state.current_weapon_stance[0..1]) + [game_state.current_weapon_stance.last]
+                 if game_state.strict_weapon_stance
+                   # Player wants their weapon stance strictly adhered to, no change.
+                   game_state.current_weapon_stance
+                 else
+                   # Player has a preference for the first two stances for this weapon
+                   # and is open to having them dynamically prioritized to optimize learning.
+                   game_state.sort_by_rate_then_rank(game_state.current_weapon_stance[0..1]) + [game_state.current_weapon_stance.last]
+                 end
                elsif @priority_defense
+                 # Player does not have a weapon specific stance but does want
+                 # a preferred defense to always be 100%.
                  rest = ['Evasion', 'Parry Ability', 'Shield Usage'] - [@priority_defense]
                  [@priority_defense] + game_state.sort_by_rate_then_rank(rest)
                else
+                 # Player is a gambler and wants combat-trainer to dynamically
+                 # prioritize the stances with the lowest learning rates/ranks.
                  game_state.sort_by_rate_then_rank(['Evasion', 'Parry Ability', 'Shield Usage'])
                end
 
@@ -585,15 +596,23 @@ class LootProcess
     end
     return unless tried_loot
     pause 1
-    if left_hand != pair.first && !@equipment_manager.is_listed_item?(left_hand)
-      echo("out of room, failed to store #{left_hand}")
-      game_state.unlootable(GameObj.left_hand.noun.downcase)
-      dispose_trash(left_hand)
+    if DRC.left_hand != pair.first || DRC.right_hand != pair.last
+      # Mitigating a race condition when wand-watcher or another script pauses
+      # combat-trainer while it's looting, then resumes in the middle of this function.
+      # Occassionally, the thread hasn't updated the left_hand/right_hand variables
+      # to know what's currently in your hand and will trash what's in your hand!
+      # Do a glance to force the variables to be refreshed before we take action.
+      DRC.bput('glance', 'You glance .*')
     end
-    if right_hand != pair.last && !@equipment_manager.is_listed_item?(right_hand)
-      echo("out of room, failed to store #{right_hand}")
-      game_state.unlootable(GameObj.right_hand.noun.downcase)
-      dispose_trash(right_hand)
+    if DRC.left_hand != pair.first && !@equipment_manager.is_listed_item?(DRC.left_hand)
+      DRC.message("Out of room, failed to store: #{DRC.left_hand}")
+      game_state.unlootable(DRC.left_hand_noun.downcase)
+      DRCI.dispose_trash(DRC.left_hand)
+    end
+    if DRC.right_hand != pair.last && !@equipment_manager.is_listed_item?(DRC.right_hand)
+      DRC.message("Out of room, failed to store: #{DRC.right_hand}")
+      game_state.unlootable(DRC.right_hand_noun.downcase)
+      DRCI.dispose_trash(DRC.right_hand)
     end
   end
 
@@ -839,7 +858,8 @@ class LootProcess
     when 'would probably object', "should be left alone."
       fput ('dissect')
     when "That's going to be hard"
-      fput ('unhide')
+      DRC.release_invisibility if invisible?
+      fput ('unhide') if hidden?
       dissected?(mob_noun, game_state)
     end
     return false
@@ -2471,7 +2491,7 @@ class TrainerProcess
         bput("teach #{@combat_teaching_skill} to #{character}", 'You begin to', 'is already listening to you', 'is listening to someone else', 'I could not find who you were referring to', 'You have already offered', 'That person is too busy teaching', 'You are already teaching', 'You cannot teach two different classes at the same time', 'is not paying attention to you', 'You cannot listen to a teacher and teach', 'already trying to teach you something', 'trying to teach someone else')
       end
     when /^Pray$/i
-      bput('pray meraud', 'You glance')
+      bput("pray #{@favor_god}", 'You offer a quiet prayer', 'Clasping your hands humbly', 'You hum under your breath', 'You murmur under your breath', 'You proclaim cheerfully', 'You raise your voice', 'You glance heavenward', 'You quietly go over the mantra', 'Immersing yourself in your faith', 'You bow your head', 'You murmur softly to yourself', 'You pray in susurration', 'You raise your fist', 'You lift your chin proudly', 'Feeling your blood boiling', 'You sigh and say softly', 'You open your arms', 'You glance at your surroundings', 'You mutter a prayer', 'Aligning your thoughts', 'You grumble ominously', 'You offer a prayer', 'You pray quietly', 'You throw your head back', 'With a mirthful laugh', 'Smiling joyously', 'You chant solemnly', 'You roll your eyes heavenward', 'You intone serenely', 'You narrow your eyes', 'You take a deep breath', 'You recite fervently', 'With an exultant grin', 'With renewed purpose', 'Drawing your fist to your heart', 'Glancing furtively at the comforting', 'You close your eyes and slow', 'You still your thoughts and whisper', 'You prepare to take lives', 'You raise your hands lightly', 'Bristling up against a sudden', 'You slowly square your shoulders', 'You tap the center of your forehead', 'You whisper your prayer', 'With a pat you double-check', 'Quietly touching your lips')
     when /^Scream$/i
       bput('Scream conc', 'Inhaling deeply', 'There is nothing', 'You open your mouth, then close it suddenly, looking somewhat like a fish') unless game_state.npcs.empty?
     when /^Khri Prowess$/i
@@ -2956,7 +2976,7 @@ class AttackProcess
     # Monitor for ammo falling to ground after firing your ranged weapon.
     # Tests: https://regex101.com/r/J5RsYD/8/
     # IMPORTANT: 'stone shard' must be listed before 'shard' and 'stone' in the pattern else won't match 'senci stone shard' correctly.
-    ammo_pattern = "(?<ammo>arrow|bolt|stone shard|shard|rock|sphere|clump|coral|fist|holder|lump|patella|pellet|pulzone|quadrello|quarrel|quill|stone|stopper|verretto|blowgun dart|crumb|spine|mantrap spike|tiny dragon|icicle|fang|scale|grey-black spike|bacon strip|page|naga|thorn|fragment)s?"
+    ammo_pattern = "(?<ammo>arrow|bolt|stone shard|shard|rock|sphere|clump|coral|fist|holder|lump|patella|pellet|pulzone|quadrello|quarrel|quill|stone|stopper|verretto|blowgun dart|crumb|spine|mantrap spike|tiny dragon|icicle|fang|scale|grey-black spike|bacon strip|page|naga|thorn|fragment|talon|cork|button|core|pebble|geode|stub|pit|thimble|doorknob|cone)s?"
     Flags.add('ct-ranged-ammo', "(you (?<action>fire|poach|snipe) an?|your) (?<prefix>[^\.!]*? )?#{ammo_pattern}(?<suffix> [^\.!]*?)?? (at|passes through)")
     Flags.add('ct-powershot-ammo', "With a loud twang, you let fly your #{ammo_pattern}!")
     Flags.add('ct-ranged-loaded', 'You reach into', 'You load', 'You carefully load', 'already loaded', 'in your hand')
@@ -3144,7 +3164,7 @@ class AttackProcess
       game_state.action_taken
     when /you (fire|poach|snipe)/i
       #Successful fire, increment action_taken
-      game_state.action_taken    
+      game_state.action_taken
     end
 
     # If detected that you shot, then stow any non-lodged ammo.
@@ -3726,6 +3746,9 @@ class GameState
     @target_increment = settings.combat_trainer_target_increment
     echo("  @target_increment: #{@target_increment}") if $debug_mode_ct
 
+    @strict_weapon_stance = settings.strict_weapon_stance
+    echo("  @strict_weapon_stance: #{@strict_weapon_stance}") if $debug_mode_ct
+
     @stances = settings.stances
     echo("  @stances: #{@stances}") if $debug_mode_ct
 
@@ -4072,6 +4095,10 @@ class GameState
 
   def update_target_weapon_skill
     @target_weapon_skill = [34, DRSkill.getxp(current_weapon_skill) + @target_increment].min
+  end
+
+  def strict_weapon_stance
+    @strict_weapon_stance
   end
 
   def current_weapon_stance

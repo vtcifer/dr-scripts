@@ -62,9 +62,10 @@ class Burgle
     @settings = get_settings
     @burgle_settings = @settings.burgle_settings
     @loot_container = @burgle_settings['loot_container']
-    @use_lockpick_ring =  @burgle_settings['use_lockpick_ring']
+    @use_lockpick_ring = @burgle_settings['use_lockpick_ring']
     @lockpick_container =  @burgle_settings['lockpick_container']
     @max_priority_mindstate = @burgle_settings['max_priority_mindstate'] || 26
+    @rope_adjective = @burgle_settings['rope_adjective'] || 'heavy'
     @loot_room_id = nil
 
     #set yaml settings unless being overridden from the command line arguments
@@ -185,7 +186,7 @@ class Burgle
         end
       when /rope/i
         if !check_entry?(@entry_type)
-          message("Couldn't find entry item: heavy rope")
+          message("Couldn't find entry item: #{@rope_adjective} rope")
           exit
         end
       when /lockpick/i
@@ -236,7 +237,7 @@ class Burgle
     get_entry(@entry_type) unless @follow
 
     #prevent race condition that can occur with bput and invisibility/stealth and playing music
-    bput('stop play','In the name of love','You stop playing') if (Script.running?('performance') || Script.running?('play'))
+    bput('stop play','In the name of love','You stop playing','But you\'re not performing anything') if (Script.running?('performance') || Script.running?('play'))
 
     wait_for_script_to_complete('buff', ['burgle']) if @settings.waggle_sets['burgle']
 
@@ -300,7 +301,7 @@ class Burgle
   def check_entry?(entry_type)
     case entry_type
     when /rope/i
-      return exists?("heavy rope")
+      return exists?("#{@rope_adjective} rope")
     when /lockpick/i
       if @use_lockpick_ring
         return exists?(@lockpick_container)
@@ -348,8 +349,8 @@ class Burgle
   def get_entry(entry_type)
     case entry_type
     when /rope/i
-      if bput('get my heavy rope', 'You get', 'You are already holding' ,'What were you') =~ /What were you/
-        message("Couldn't find entry item: heavy rope")
+      if bput("get my #{@rope_adjective} rope", 'You get', 'You are already holding' ,'What were you') =~ /What were you/
+        message("Couldn't find entry item: #{@rope_adjective} rope")
         exit
       end
     when /lockpick/i
@@ -455,7 +456,7 @@ class Burgle
 
   #ripped out of steal.lic
   def put_item?(item)
-    case bput("put my #{item} in my #{@loot_container}", 'What were you', 'You put', "You can't do that", 'no matter how you arrange it', 'even after stuffing', 'The .* is *.* too \w+ to fit in', 'There isn\'t any more room', 'perhaps try doing that again')
+    case bput("put my #{item} in my #{@loot_container}", 'What were you', 'You put', "You can't do that", 'no matter how you arrange it', 'even after stuffing', 'The .* is *.* too \w+ to fit in', 'There isn\'t any more room', 'perhaps try doing that again', 'That\'s too heavy to go in there', "^Weirdly, you can't manage")
     when 'perhaps try doing that again'
       return put_item?(item)
     when 'You put'
