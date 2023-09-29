@@ -12,7 +12,7 @@ class T2
     arg_definitions = [
       [
         { name: 'nodelay', regex: /nodelay/i, optional: true, description: 'Skip settings.t2_startup_delay' },
-        { name: 'debug',   regex: /^debug$/i, optional: true, description: 'Turn on debug info for t2.'}
+        { name: 'debug',   regex: /^debug$/i, optional: true, description: 'Turn on debug info for t2.' }
       ]
     ]
 
@@ -59,8 +59,8 @@ class T2
             DRC.message("Checking all skills in #{trainable['skill']} to see if any are at or below #{trainable['start']}")
             skills_needing_training = trainable['skill'].each.reject { |skill| DRSkill.getxp(skill) >= trainable['start'] }
             if skills_needing_training.any?
-              DRC.message("List of skills needing training: #{skills_needing_training.map { |skill| "#{skill} - (#{DRSkill.getxp(skill)})"}}.")
-            else 
+              DRC.message("List of skills needing training: #{skills_needing_training.map { |skill| "#{skill} - (#{DRSkill.getxp(skill)})" }}.")
+            else
               DRC.message("No skills needed training, moving to next in list.")
               next
             end
@@ -79,7 +79,7 @@ class T2
           if @debug
             DRC.message("Skill #{trainable['skill']} is still in cooldown:")
             DRC.message("  Now:                #{Time.now}")
-            DRC.message("  Next Training Time: #{UserVars.t2_timers[trainable['skill']]+ @settings.exp_timers[trainable['skill']]}")
+            DRC.message("  Next Training Time: #{UserVars.t2_timers[trainable['skill']] + @settings.exp_timers[trainable['skill']]}")
             DRC.message("Moving to next in list.")
           end
           next
