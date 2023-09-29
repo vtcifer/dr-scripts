@@ -11,11 +11,15 @@ class T2
   def initialize
     arg_definitions = [
       [
-        { name: 'nodelay', regex: /nodelay/i, optional: true, description: 'Skip settings.t2_startup_delay' }
+        { name: 'nodelay', regex: /nodelay/i, optional: true, description: 'Skip settings.t2_startup_delay' },
+        { name: 'debug',   regex: /^debug$/i, optional: true, description: 'Turn on debug info for t2.'}
       ]
     ]
 
     @args = parse_args(arg_definitions, true)
+
+    @debug = UserVars.t2_debug || args.debug
+    DRC.message("T2 Debugging on") if @debug
 
     @settings = get_settings(@args.flex)
 
@@ -25,6 +29,7 @@ class T2
 
     @counter = 0
     UserVars.t2_timers ||= {}
+    DRC.message("Current t2_timers:\n#{UserVars.t2_timers.to_yaml}") if @debug
 
     @settings.t2_avoids.each do |avoid|
       if avoid['state']
@@ -35,6 +40,7 @@ class T2
     end
 
     if !@args.nodelay && @settings.t2_startup_delay.to_i > 0
+      DRC.message("Pausing due to t2_startup_delay.") if @debug
       pause until Time.now - DRSkill.start_time > @settings.t2_startup_delay
     end
   end
@@ -49,17 +55,46 @@ class T2
       trainables.each do |trainable|
         # Skip if learning rate is above start threshold for this trainable
         if trainable['skill'].is_a?(Array)
-          next if trainable['skill'].each.reject { |skill| DRSkill.getxp(skill) >= trainable['start'] }.empty?
+          if @debug
+            DRC.message("Checking all skills in #{trainable['skill']} to see if any are at or below #{trainable['start']}")
+            skills_needing_training = trainable['skill'].each.reject { |skill| DRSkill.getxp(skill) >= trainable['start'] }
+            if skills_needing_training.any?
+              DRC.message("List of skills needing training: #{skills_needing_training.map { |skill| "#{skill} - (#{DRSkill.getxp(skill)})"}}.")
+            else 
+              DRC.message("No skills needed training, moving to next in list.")
+              next
+            end
+          else
+            next if trainable['skill'].each.reject { |skill| DRSkill.getxp(skill) >= trainable['start'] }.empty?
+          end
         elsif DRSkill.getxp(trainable['skill']) >= trainable['start']
+          DRC.message("Checked #{trainable['skill']} it did not need training, moving to next in list.") if @debug
           next
+        else
+          DRC.message("Checked #{trainable['skill']} - (#{DRSkill.getxp(trainable['skill'])}) it needs training.") if @debug
         end
 
         # Skip if the skill is still on cooldown between trainings
-        next if has_cooldown?(trainable['skill']) && !cooldown_expired?(trainable['skill'])
+        if has_cooldown?(trainable['skill']) && !cooldown_expired?(trainable['skill'])
+          if @debug
+            DRC.message("Skill #{trainable['skill']} is still in cooldown:")
+            DRC.message("  Now:                #{Time.now}")
+            DRC.message("  Next Training Time: #{UserVars.t2_timers[trainable['skill']]+ @settings.exp_timers[trainable['skill']]}")
+            DRC.message("Moving to next in list.")
+          end
+          next
+        end
 
         # Skip if no moons are available
         # Lunar mages can use this setting to skip skills that require moons
-        next if trainable['moons'] && !DRCMM.moons_visible?
+        if trainable['moons'] && !DRCMM.moons_visible?
+          if @debug
+            DRC.message("Skill #{trainable['skill']} needs moons up, current moons:")
+            DRC.message("  #{UserVars.moons['katamba']['pretty']}\n  #{UserVars.moons['yavash']['pretty']}\n  #{UserVars.moons['xibar']['pretty']}")
+            DRC.message("Moving to next in list.")
+          end
+          next
+        end
 
         # At this point we know that we need to train the skill
         if trainable['name'].nil?
@@ -137,6 +172,16 @@ class T2
     @settings = temp_settings
     DRC.message("T2 training_list reloaded.")
     echo @settings.training_list.to_yaml if debug
+  end
+
+  def debugon
+    @debug = true
+    DRC.message("T2 Debugging on")
+  end
+
+  def debugoff
+    @debug = false
+    DRC.message("T2 Debugging off")
   end
 end
 
