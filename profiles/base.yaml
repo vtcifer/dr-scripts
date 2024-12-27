@@ -29,7 +29,7 @@ t2_avoids:
   - type: drag
     state: true
 
-# scripts to rune before the startup of T2
+# Scripts to run before starting T2
 t2_before_startup:
 #  - multi 1, move door
 #  - gosafe
