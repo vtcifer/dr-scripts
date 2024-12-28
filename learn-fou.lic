@@ -1,9 +1,7 @@
-
 custom_require.call(%w[common common-items common-travel])
 
 class LearnFOU
   def initialize
-
     arg_definitions = [
       [
         { name: 'crevasse', options: 'crevasse', optional: true, description: 'Skip the cone and start with the lava crevasse' }
@@ -73,13 +71,13 @@ class LearnFOU
         fput('retreat')
         pause 1
       end
-      
+
       study_count += 1
       # study the crevasse, break out of loop if you are successful
-      break if "The image of a red-hot cone momentarily sears your mind's eye" == DRC.bput( 'study crevasse', "The image of a red-hot cone momentarily sears your mind's eye", 'You think you see some meaning within the flow of lava')
+      break if "The image of a red-hot cone momentarily sears your mind's eye" == DRC.bput('study crevasse', "The image of a red-hot cone momentarily sears your mind's eye", 'You think you see some meaning within the flow of lava')
 
       # if not successful get new blood (so you don't wait if you're out)
-      if !DRCI.get_item('mobar blood',nil)
+      if !DRCI.get_item('mobar blood', nil)
         DRC.message("Ran out of Mobar Blood!  Headding to your saferoom!")
         DRC.wait_for_script_to_complete('bescort', ['gate_of_souls', 'exit'])
         DRC.wait_for_script_to_complete('gosafe')
