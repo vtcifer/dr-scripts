@@ -21,6 +21,7 @@ class ScrollSorter
     @scroll_nouns = get_data('items').scroll_nouns + @custom_nouns
     @unleash_mana = @settings.scroll_sorter['unleash_mana']
     @unleash_harnesses = @settings.scroll_sorter['unleash_harnesses']
+    @unleash_harnesses ||= 1
 
     arg_definitions =
       [
@@ -33,7 +34,7 @@ class ScrollSorter
           { name: 'spell', regex: /\w+/i, optional: false, description: 'Name of spell to find.  Use full name, enclose in double quotes if more than one word.' }
         ],
         [
-          { name: 'unleash', regex: /unleash/i, description: 'Unleash the specified spell scroll in your stackers.'},
+          { name: 'unleash', regex: /unleash/i, description: 'Unleash the specified spell scroll in your stackers.' },
           { name: 'spell', regex: /\w+/i, optional: false, description: 'Name of spell to unleash.  Use full name, enclose in double quotes if more than one word.' }
         ]
       ]
@@ -92,7 +93,7 @@ class ScrollSorter
   end
 
   def find_full_spell_name(abbrev)
-    return @all_spells.select { |s, g, a| a.casecmp(abbrev) == 0 }.flatten[0]
+    return @all_spells.select { |_s, _g, a| a.casecmp(abbrev) == 0 }.flatten[0]
   end
 
   def check_scroll(scroll)
