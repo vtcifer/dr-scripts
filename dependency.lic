@@ -43,16 +43,16 @@ unless Settings['dependency_version'] == $DEPENDENCY_VERSION
   Settings.save
 end
 
-unless CharSettings['dependency_setflags']
+unless UserVars.dependency_setflags
   echo("Checking MonsterBold and ShowRoomID flags.")
   flags = Lich::Util.issue_command("flag", /^Usage/, /^For other setting options, see AVOID, SET, and TOGGLE/, quiet: true, timeout: 1, usexml: false)
   mandatory_flags = ["ShowRoomID", "MonsterBold"]
   mandatory_flags.each do |flag|
-    unless flags.any?{ |f| f.match?(/#{flag}\s+ON/) }
+    unless flags.any? { |f| f.match?(/#{flag}\s+ON/) }
       fput("flag #{flag} on")
     end
   end
-  CharSettings['dependency_setflags'] = Time.now
+  UserVars.dependency_setflags = Time.now
 end
 
 class Object
