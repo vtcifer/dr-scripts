@@ -2595,6 +2595,8 @@ skill_recorder_check_exp_mods: false
 # for your dead body to be resurrected so that we can run `info` again.
 drinfomon_passive_delay: 30
 
+# Context: In the past, approval of map StringProc changes could take a long time, so it was
+# frowned upon to get the map locked.
 # Allows for overriding map settings for the go2 script. Do not use this setting in your own yaml
 # Use personal_wayto_overrides instead.
 # These are commented out for historical reference only. These are in the map now.
