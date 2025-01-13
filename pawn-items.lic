@@ -49,10 +49,10 @@ class PawnItems
     sell_items(pawnshop_room_id, args.source, args.noun)
 
      # Clean up any !sellables
-     @return_list.each { |item|
-          DRCI.get_item?(item)
-          DRCI.put_away_item?(item, args.source)
-      }  
+     @return_list.each do |item|
+        DRCI.get_item?(item)
+        DRCI.put_away_item?(item, args.source)
+     end
   end
 
   def sell_items(pawnshop_room_id, source, noun)
