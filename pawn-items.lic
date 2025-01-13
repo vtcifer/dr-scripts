@@ -48,11 +48,11 @@ class PawnItems
     # Turn items into coins
     sell_items(pawnshop_room_id, args.source, args.noun)
 
-     # Clean up any !sellables
-     @return_list.each do |item|
-        DRCI.get_item?(item)
-        DRCI.put_away_item?(item, args.source)
-     end
+    # Clean up any !sellables
+    @return_list.each do |item|
+      DRCI.get_item?(item)
+      DRCI.put_away_item?(item, args.source)
+    end
   end
 
   def sell_items(pawnshop_room_id, source, noun)
@@ -77,7 +77,7 @@ class PawnItems
         unless DRCT.sell_item(pawnshop_room_id, item)
           # Failed. Message user and return item to source container.
           DRC.message("Unable to sell #{item}. The merchant may not accept these items.")
-          DRC.bput("lower ground",'You lower')
+          DRC.bput("lower ground", 'You lower')
           @return_list << item
         end
       else
