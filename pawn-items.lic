@@ -21,6 +21,7 @@ class PawnItems
     args = parse_args(arg_definitions)
 
     settings = get_settings
+    @return_list = []
 
     # Identify which pawnshop to go to.
     if DRCT.tag_to_id('pawnshop') == Room.current.id
@@ -46,6 +47,12 @@ class PawnItems
 
     # Turn items into coins
     sell_items(pawnshop_room_id, args.source, args.noun)
+
+     # Clean up any !sellables
+     @return_list.each { |item|
+          DRCI.get_item?(item)
+          DRCI.put_away_item?(item, args.source)
+      }  
   end
 
   def sell_items(pawnshop_room_id, source, noun)
@@ -70,8 +77,8 @@ class PawnItems
         unless DRCT.sell_item(pawnshop_room_id, item)
           # Failed. Message user and return item to source container.
           DRC.message("Unable to sell #{item}. The merchant may not accept these items.")
-          DRCI.put_away_item?(item, source)
-          exit
+          DRC.bput("lower ground",'You lower')
+          @return_list << item
         end
       else
         DRC.message("Unable to get #{item} from #{source}.")
