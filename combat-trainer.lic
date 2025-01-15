@@ -2955,6 +2955,8 @@ class TrainerProcess
     when /^Berserk Avalanche$/i
       DRCA.activate_barb_buff?('Avalanche')
     when /^Collect$/i
+      # only collect if weapon is not loaded, as collect's high RT has a high chance of overrunning weapon switch window
+      return if game_state.loaded
       game_state.sheath_whirlwind_offhand
       DRC.retreat
       game_state.engage unless game_state.npcs.empty? || game_state.retreating?
