@@ -643,6 +643,7 @@ blacksmithing:
     bingots-room: 17119 # shard
     trash-room: 16412
     idle-room: 16405
+    private_forge: 51498
   Ratha:
     npc: Grimbly
     npc_last_name: Grimbly
@@ -720,6 +721,7 @@ blacksmithing:
     bingots-room: # left intentionally blank until bingots are added here
     trash-room: 17690
     idle-room: 17689
+    private_forge: 17699
   Hibarnhvidar: &forfedhdar_blacksmithing
     npc: Juln
     npc_last_name: Juln
@@ -800,6 +802,7 @@ blacksmithing:
     bingots-room: 17120
     trash-room: 14881
     idle-room: 9136
+    private_forge: 51171
   Mer'Kresh:
     npc: Kapric
     npc_last_name: Kapric
@@ -1052,6 +1055,7 @@ tailoring:
     tool-room: 17136
     pattern-book: tailoring
     idle-room: 17132
+    private_forge: 51128
   Boar Clan:
     << : *forfedhdar_tailoring
 shaping:
