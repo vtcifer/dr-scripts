@@ -1,6 +1,8 @@
 ---
 Arthe Dale:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   shipment_clerk:
     id: 8999
   trade_minister:
@@ -9,6 +11,8 @@ Arthe Dale:
     id: 1073
 Crossing:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   vault:
     id: 8285
   family_vault:
@@ -261,11 +265,15 @@ Crossing:
       - 970
 Knife Clan:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   deposit: *crossing_deposit
   npc_empath:
     id: 6218 # This is dokt
 Darkling Wood:
   currency: dokoras
+  nexus: # Shard
+    id: 9459
   shipment_clerk:
     id: 14636
   trade_minister:
@@ -275,6 +283,8 @@ Darkling Wood:
 Dirge:
   vault:
     id: 14633
+  nexus: # Crossing
+    id: 19162
   trade_minister:
     id: 15175
   currency: kronars
@@ -301,6 +311,8 @@ Dirge:
       - 1320
 Fayrin's Rest:
   currency: dokoras
+  nexus: # Shard
+    id: 9459
   shipment_clerk:
     id: 19278
   trade_minister:
@@ -308,6 +320,9 @@ Fayrin's Rest:
   trader_outpost:
     id: 2840
 Chyolvea:
+  currency: dokoras
+  nexus: # Shard
+    id: 9459
   npc_empath:
     id: 8043
   deposit:
@@ -317,6 +332,8 @@ Chyolvea:
     fee: 0.08
 Leth Deriel:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   vault:
     id: 4488
   leather_repair: *catrox
@@ -373,6 +390,8 @@ Leth Deriel:
     << : *zoluren_guild_leaders
 Shard:
   currency: dokoras
+  nexus: # Shard
+    id: 9459
   vault:
     id: 19282
   family_vault:
@@ -641,6 +660,8 @@ Shard:
       - 2595
 Steelclaw Clan:
   currency: dokoras
+  nexus: # Shard
+    id: 9459
   shipment_clerk:
     id: 19399
   trade_minister:
@@ -654,6 +675,8 @@ Steelclaw Clan:
   deposit: *shard_deposit
 Stone Clan:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   shipment_clerk:
     id: 8996
   trade_minister:
@@ -662,6 +685,8 @@ Stone Clan:
     id: 1169
 Tiger Clan:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   shipment_clerk:
     id: 1889
   trade_minister:
@@ -670,6 +695,8 @@ Tiger Clan:
     id: 1885
 Wolf Clan:
   currency: kronars
+  nexus: # Crossing
+    id: 19162
   shipment_clerk:
     id: 8997
   trade_minister:
@@ -683,6 +710,8 @@ Wolf Clan:
   deposit: *crossing_deposit
 Riverhaven:
   currency: lirums
+  nexus: # Riverhaven
+    id: 365
   vault:
     id: 11476
   shipment_clerk:
@@ -800,13 +829,13 @@ Riverhaven:
     Warrior Mage:
       name: Karazhil
       id: 427
-  # athletics (jant river): 7651, 7650, 7649, 7648, 7647, 7633
 Rossman's Landing:
-  # safe room: 7695
   tannery:
     id: 7702
     name: Drinak
   currency: lirums
+  nexus: # Riverhaven
+    id: 365
   vault:
     id: 51487
   exchange:
@@ -833,6 +862,8 @@ Rossman's Landing:
     - 12416
 Therenborough:
   currency: lirums
+  nexus: # Therenborough
+    id: 3158
   vault:
     id: 8501
   shipment_clerk:
@@ -898,6 +929,8 @@ Therenborough:
       id: 13417
 Langenfirth:
   currency: lirums
+  nexus: # Langenfirth
+    id: 3353
   shipment_clerk:
     id: 13414
   trade_minister:
@@ -965,6 +998,8 @@ Langenfirth:
     << : *therengia_guild_leaders
 Fornsted:
   currency: lirums
+  nexus: # Therenborough
+    id: 3158
   shipment_clerk:
     id: 14435
   trade_minister:
@@ -973,6 +1008,8 @@ Fornsted:
     id: 3693
 Hvaral:
   currency: lirums
+  nexus: # Therenborough
+    id: 3158
   shipment_clerk:
     id: 14651
   trade_minister:
@@ -980,8 +1017,9 @@ Hvaral:
   trader_outpost:
     id: 3751
 Ratha:
-#todo - handling for two debt and two jails
   currency: lirums
+  nexus: # Ratha
+    id: 4947
   vault:
     id: 14433
   leather_repair: &raven
@@ -1383,6 +1421,8 @@ Hibarnhvidar:
       id: 11498
 Raven's Point:
   currency: dokoras
+  nexus: # Shard
+    id: 9459
   shipment_clerk:
     id: 14642
   trade_minister:
@@ -1497,6 +1537,8 @@ Fang Cove:
     id: 8393
 Muspar'i:
   currency: Lirums
+  nexus: # Therenborough
+    id: 3158
   vault:
     id: 15110
   shipment_clerk:
