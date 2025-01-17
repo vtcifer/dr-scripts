@@ -4,7 +4,7 @@ class Nexus
   def initialize
     arg_definitions = [
       [
-        { name: 'resources', regex: /\w+/i, optional: true, description: 'Resource to sacrifice at nexus point' }
+        { name: 'resources', options: %w[concentration health mana spirit fatigue], description: 'Resource to sacrifice at nexus point' }
       ]
     ]
 
@@ -18,13 +18,17 @@ class Nexus
     settings = get_settings
     hometown = settings.nexus_town || settings.fang_cove_override_town || settings.hometown
     room = get_room(hometown)
+    unless room
+      echo("No nexus room found for #{hometown}. Exiting.")
+      exit
+    end
     unless should_sacrifice?
       echo("Not enough time has passed since last nexus sacrifice.")
       echo("Exiting.")
       exit
     end
     DRCT.walk_to(room)
-    sacrifice(args.resources) if args.resources
+    sacrifice(args.resources) if args.resources && Map.current.id == room
   end
 
   def should_sacrifice?
@@ -37,9 +41,9 @@ class Nexus
 
   def sacrifice(resources)
     case DRC.bput("sacrifice nexus #{resources}",
-                  /^You reach out, sensing the latent nexus and attempt to forge a connection with it/,
-                  /^You've recently sacrificed to empower a nexus. You should wait a while before doing so again/,
-                  /^You sense the energies of the nexus here are still intact/)
+      /^You reach out, sensing the latent nexus and attempt to forge a connection with it/,
+      /^You've recently sacrificed to empower a nexus. You should wait a while before doing so again/,
+      /^You sense the energies of the nexus here are still intact/)
     when /You reach out, sensing the latent nexus and attempt to forge a connection with it/
       UserVars.last_nexus = Time.now
       return true
