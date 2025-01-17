@@ -821,7 +821,7 @@ class LootProcess
     loop do
       result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'], @rituals['construct'])
       game_state.construct(mob_noun) if result.include?(@rituals['construct'])
-      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) || result.include?(@rituals['construct'] }
+      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) || result.include?(@rituals['construct']) }
 
       DRC.bput("drop my #{DRC.right_hand}", 'You drop', 'You discard', 'Please rephrase')
       break if @dissect_and_butcher && !@ritual_type.eql?('butcher')
