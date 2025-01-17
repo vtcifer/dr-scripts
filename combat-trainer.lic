@@ -997,9 +997,9 @@ class LootProcess
     when 'This ritual may only be performed on a corpse', 'A failed or completed ritual has rendered', 'You realize after a few seconds', 'prevents a meaningful dissection'
       return false
     when 'Rituals do not work upon constructs'
-      game_state.construct(mob_noun)                        
+      game_state.construct(mob_noun)
       game_state.undissectable(mob_noun)
-      return false 
+      return false
     when 'While likely a fascinating study', "That'd be a waste of time.", 'You do not yet possess the knowledge'
       game_state.undissectable(mob_noun)
       @dissect_cycle_skills.delete("First Aid")
