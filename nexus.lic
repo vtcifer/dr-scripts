@@ -41,9 +41,9 @@ class Nexus
 
   def sacrifice(resources)
     case DRC.bput("sacrifice nexus #{resources}",
-      /^You reach out, sensing the latent nexus and attempt to forge a connection with it/,
-      /^You've recently sacrificed to empower a nexus. You should wait a while before doing so again/,
-      /^You sense the energies of the nexus here are still intact/)
+                  /^You reach out, sensing the latent nexus and attempt to forge a connection with it/,
+                  /^You've recently sacrificed to empower a nexus. You should wait a while before doing so again/,
+                  /^You sense the energies of the nexus here are still intact/)
     when /You reach out, sensing the latent nexus and attempt to forge a connection with it/
       UserVars.last_nexus = Time.now
       return true
