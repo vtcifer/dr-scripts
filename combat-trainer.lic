@@ -819,8 +819,9 @@ class LootProcess
     @equipment_manager.stow_weapon(game_state.weapon_name)
 
     loop do
-      result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'])
-      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) }
+      result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'], @rituals['construct'])
+      game_state.construct(mob_noun) if result.include?(@rituals['construct'])
+      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) || result.include?(@rituals['construct'] }
 
       DRC.bput("drop my #{DRC.right_hand}", 'You drop', 'You discard', 'Please rephrase')
       break if @dissect_and_butcher && !@ritual_type.eql?('butcher')
@@ -993,8 +994,12 @@ class LootProcess
       waitrt?
       fput("dissect")
       return false
-    when 'This ritual may only be performed on a corpse', 'A failed or completed ritual has rendered', 'You realize after a few seconds', 'prevents a meaningful dissection', 'Rituals do not work upon constructs'
+    when 'This ritual may only be performed on a corpse', 'A failed or completed ritual has rendered', 'You realize after a few seconds', 'prevents a meaningful dissection'
       return false
+    when 'Rituals do not work upon constructs'
+      game_state.construct(mob_noun)                        
+      game_state.undissectable(mob_noun)
+      return false 
     when 'While likely a fascinating study', "That'd be a waste of time.", 'You do not yet possess the knowledge'
       game_state.undissectable(mob_noun)
       @dissect_cycle_skills.delete("First Aid")
