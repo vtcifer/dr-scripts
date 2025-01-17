@@ -57,8 +57,7 @@ class Nexus
   end
 
   def get_room(town)
-    room = get_data('town')[town]['nexus']['id']
-    return room
+    return get_data('town')[town]['nexus']['id']
   end
 end
 
