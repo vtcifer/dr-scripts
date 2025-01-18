@@ -15,6 +15,11 @@ class Companion
       exit
     end
 
+    @settings = get_settings
+    @corn_storage = @settings.companion_corn_storage
+    @milk_storage = @settings.companion_milk_storage
+    @meat_storage = @settings.companion_meat_storage # just a placeholder that's not needed in this script currently
+
     case DRC.bput('whistle for companion', 'Your lips are too dry', 'wolf scrambles in', 'raccoon scrambles in', 'You whistle a merry tune', 'wolf perks', 'You whistle loudly for your companion', 'purse your lips to call')
     when 'purse your lips to call'
       exit
@@ -26,24 +31,39 @@ class Companion
       # A baby wolf stands up then paces back and forth nervously.
       # A baby wolf paces back and forth.
       if line =~ /^.*wolf( stands up then|) paces back and forth*/
+        # Pause scripts to prevent interference
+        until (scripts_to_unpause = DRC.safe_pause_list)
+          echo('Cannot pause, trying again in 30 seconds.')
+          pause 30
+        end
         case DRC.bput('pet wolf', 'You pet your baby wolf', 'Touch what', 'wolf shies away from you')
         # Matches when there are 2 wolves in the room
         when 'wolf shies away from you'
           DRC.bput('pet second wolf', 'You pet your baby wolf', 'Touch what', 'wolf shies away from you')
         end
+        DRC.safe_unpause_list(scripts_to_unpause)
       end
 
       # A baby raccoon stands up then paces back and forth nervously.
       # A baby raccoon paces back and forth.
       # TODO: Find messaging when there's multiple raccoons in one room.
       if line =~ /^.*raccoon( stands up then|) paces back and forth*/
+        # Pause scripts to prevent interference
+        until (scripts_to_unpause = DRC.safe_pause_list)
+          echo('Cannot pause, trying again in 30 seconds.')
+          pause 30
+        end
         DRC.bput('pet raccoon', 'You pet', 'Touch what')
+        DRC.safe_unpause_list(scripts_to_unpause)
       end
 
       if line =~ /^A .*(young|full-grown) wolf begins to whimper./
-        pause 1 until DRC.pause_all
-        waitrt?
-        DRC.bput('stow left', 'Stow what', 'You put')
+        # Pause scripts to prevent interference
+        until (scripts_to_unpause = DRC.safe_pause_list)
+          echo('Cannot pause, trying again in 30 seconds.')
+          pause 30
+        end
+        DRCI.stow_hand('left')
         case DRC.bput('rub my red pouch', 'brief flash of light emanates from inside', 'You rub', 'What were you referring to')
         when 'What were you referring to'
           DRC.bput('signal companion to sleep', 'wolf wanders off to find', 'Your companion is not', 'You have no companion', 'snapping your fingers')
@@ -72,13 +92,16 @@ class Companion
           DRC.bput('signal companion to sleep', 'wolf wanders off to find', 'Your companion is not', 'You have no companion', 'snapping your fingers')
           exit
         end
-        DRC.unpause_all
+        DRC.safe_unpause_list(scripts_to_unpause)
       end
 
       if line =~ /^A .*baby wolf begins to whimper./
-        pause 1 until DRC.pause_all
-        waitrt?
-        DRC.bput('stow left', 'Stow what', 'You put')
+        # Pause scripts to prevent interference
+        until (scripts_to_unpause = DRC.safe_pause_list)
+          echo('Cannot pause, trying again in 30 seconds.')
+          pause 30
+        end
+        DRCI.stow_hand('left')
         case DRC.bput('get my milk', 'You get', 'You are already holding', 'What were you referring to')
         when 'What were you referring to'
           DRC.bput('signal companion to sleep', 'wolf wanders off to find', 'Your companion is not', 'You have no companion', 'snapping your fingers')
@@ -91,26 +114,36 @@ class Companion
           DRC.bput('signal companion to sleep', 'wolf wanders off to find', 'Your companion is not', 'You have no companion', 'snapping your fingers')
           exit
         end
-        DRC.bput('put my milk in my greatcloak', 'You put your', 'Stow what')
-        DRC.unpause_all
+        DRCI.put_away_item?('milk', @milk_storage)
+        DRC.safe_unpause_list(scripts_to_unpause)
       end
 
-      # Move to next loop iteration unless we see racoon whimpering
-      next unless line =~ /^A .* raccoon begins to whimper./
+      if line =~ /^A .* raccoon begins to whimper./
+        # Pause scripts to prevent interference
+        until (scripts_to_unpause = DRC.safe_pause_list)
+          echo('Cannot pause, trying again in 30 seconds.')
+          pause 30
+        end
 
-      pause 1 until DRC.pause_all
-      waitrt?
+        DRCI.stow_hand('left')
+        case DRC.bput('rub my yellow pouch', 'brief flash of light emanates from inside', 'You rub', 'What were you referring to')
+        when 'What were you referring to'
+          DRC.bput('signal companion to sleep', 'wolf wanders off to find', 'Your companion is not', 'You have no companion', 'snapping your fingers')
+          exit
+        end
+        case DRC.bput('get my corn', 'You get', 'You are already holding', 'What were you referring to')
+        when 'What were you referring to'
+          DRC.bput('signal companion to sleep', 'raccoon wanders off to find a quiet place to sleep.')
+          exit
+        end
 
-      DRC.bput('stow left', 'Stow what', 'You put')
-      case DRC.bput('get my corn', 'You get', 'You are already holding', 'What were you referring to')
-      when 'What were you referring to'
-        DRC.bput('signal companion to sleep', 'raccoon wanders off to find a quiet place to sleep.')
-        exit
+        DRC.bput('feed my corn to raccoon', 'raccoon greedily eats')
+        DRCI.put_away_item?('corn', @corn_storage)
+        DRC.safe_unpause_list(scripts_to_unpause)
       end
 
-      DRC.bput('feed my corn to raccoon', 'raccoon greedily eats')
-      DRC.bput('stow my corn', 'You put your', 'Stow what')
-      DRC.unpause_all
+      next
+
     end
   end
 end
