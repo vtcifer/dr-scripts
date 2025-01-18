@@ -3674,6 +3674,9 @@ class AttackProcess
       echo "attack_aimed::aiming_trainables:skill: #{skill}" if $debug_mode_ct
       return unless skill
 
+      # if aiming_trainable is locked, don't continue to train it!
+      return if DRSkill.getxp(skill) > 32
+
       weapon_name = game_state.wield_offhand_weapon(skill)
 
       actions = if skill.eql?('Tactics')
