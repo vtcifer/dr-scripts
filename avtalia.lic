@@ -13,9 +13,26 @@ no_pause_all
 
 class Avtalia
   def initialize
+    arg_definitions = [
+      [
+        { name: 'window', regex: /window/i, optional: true, description: 'Toggle a window for Avtalia updates.' },
+      ]
+    ]
+
+    @args = parse_args(arg_definitions)
     @settings = get_settings
     @avtalia_array = @settings.avtalia_array
     exit if @avtalia_array.empty?
+    if @args.window
+      if $frontend == 'genie' # fix genie bullshit
+        _respond("<streamWindow id='avtaliaWindow' title='avtaliaWindow' location='center' save='true' />")
+        echo('Be sure to open the avtaliaWindow window if not already open.')
+      else
+        _respond("<streamWindow id='avtaliaWindow' title='Avtalia' location='center' save='true' />")
+      end
+      _respond("<exposeStream id='avtaliaWindow'/>")
+      @window_cache = nil
+    end
     add_avtalia_flags
     execute
   end
@@ -55,6 +72,14 @@ class Avtalia
 
       Flags.reset("avtalia-full-#{camb['name']}")
       Flags.reset("avtalia-focus-#{camb['name']}")
+    end
+
+    if @args.window
+      new_message = UserVars.avtalia.map { |item, stats| "#{item}: #{stats['mana']}/#{stats['cap']}" }.join("\r\n")
+      return if @window_cache == new_message
+      @window_cache = new_message
+      _respond("<clearStream id=\"avtaliaWindow\"/>\r\n")
+      _respond("<pushStream id=\"avtaliaWindow\"/>#{new_message}\r\n<popStream/>\r\n")
     end
   end
 end
