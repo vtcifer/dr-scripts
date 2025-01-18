@@ -18,7 +18,7 @@ class Companion
     @settings = get_settings
     @corn_storage = @settings.companion_corn_storage
     @milk_storage = @settings.companion_milk_storage
-    @meat_storage = @settings.companion_meat_storage  # just a placeholder that's not needed in this script currently
+    @meat_storage = @settings.companion_meat_storage # just a placeholder that's not needed in this script currently
 
     case DRC.bput('whistle for companion', 'Your lips are too dry', 'wolf scrambles in', 'raccoon scrambles in', 'You whistle a merry tune', 'wolf perks', 'You whistle loudly for your companion', 'purse your lips to call')
     when 'purse your lips to call'
