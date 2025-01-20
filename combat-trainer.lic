@@ -900,7 +900,7 @@ class LootProcess
   end
 
   def arrange_mob(mob_noun, game_state)
-    return unless @skin
+    return unless @skin || @arrange_for_dissect
     return unless @arrange_count > 0
     return unless game_state.skinnable?(mob_noun)
     return if game_state.necro_casting?
