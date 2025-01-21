@@ -39,7 +39,6 @@ class Yiamura
 
   def observe_yiamura
     case DRC.bput("observe my yiamura", /but nothing happens/, /Very quickly, your head reels as knowledge fills your mind/)
-    when /but nothing happens/
     when /Very quickly, your head reels as knowledge fills your mind/
       UserVars.yiamura['last_observed'] = Time.now
     end
