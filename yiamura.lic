@@ -44,7 +44,6 @@ class Yiamura
       UserVars.yiamura['last_observed'] = Time.now
     end
   end
-
 end
 
 Yiamura.new
