@@ -2401,7 +2401,6 @@ class AbilityProcess
     DRC.wait_for_script_to_complete('yiamura', ['raise'])
   end
 
-
   # Sets up our warhorn and/or egg use. Sets timers. Allows legacy use of warhorn: egg. Checks to
   # see if we're using a wearable warhorn or have it in a bag.
   def set_warhorn_or_egg
