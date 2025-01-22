@@ -4314,7 +4314,7 @@ class GameState
     end
 
     @last_exp = -1
-    @no_gain_list = Hash.new
+    @no_gain_list = Hash.new(0)
     @weapons_to_train.each { |skill_name, _weapon_name| @no_gain_list[skill_name] = 0 }
     echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
 
@@ -4828,8 +4828,8 @@ class GameState
     echo("skill exp: #{current_exp} vs #{@target_weapon_skill}") if $debug_mode_ct
 
     # gain_check code: logic to account for a skill that is not gaining any MS at all
-    if @gain_check then
-      if (current_exp <= @last_exp) && (current_exp != 34) then
+    if @gain_check && (weapon_skill != nil) then
+      if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
         @no_gain_list[weapon_skill] += 1
       else
         @no_gain_list[weapon_skill] = 0
