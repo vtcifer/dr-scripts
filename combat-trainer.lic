@@ -4840,7 +4840,7 @@ class GameState
        @last_exp = current_exp
 
        # blacklist skill if it hasn't been gaining for a while
-       if ((@no_gain_list[weapon_skill] > @gain_check) then
+       if (@no_gain_list[weapon_skill] > @gain_check) then
           DRC.message("WARNING: Supppressing #{weapon_skill} due to skill not training")
           @weapons_to_train.delete(weapon_skill)
           return true
