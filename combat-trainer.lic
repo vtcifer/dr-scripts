@@ -4849,7 +4849,7 @@ class GameState
         # if weapon is at 34, don't black list but do (try to) switch weapons.
         if current_exp == 34 then
           return true
-        return
+        end
     end
 
     @action_count >= @target_action_count || current_exp >= @target_weapon_skill
