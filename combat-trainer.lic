@@ -4834,10 +4834,8 @@ class GameState
       else
         @no_gain_list[weapon_skill] = 0
       end
-      
-      echo("updated @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
-
       @last_exp = current_exp
+      echo("updated @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
 
       # blacklist skill if it hasn't been gaining for a while
       if (@no_gain_list[weapon_skill] > @gain_check) then
