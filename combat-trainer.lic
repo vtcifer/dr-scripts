@@ -173,8 +173,11 @@ class SetupProcess
 
     echo('new skill needed for training') if $debug_mode_ct
 
+    # reset counters for game_state.skill_done? after decision to switch to new skill
+    # as counts for previous weapon is now invalid
     game_state.reset_action_count
-    @last_exp = -1
+    game_state.last_exp = -1
+    game_state.last_action_count = 0
 
     # If you're training with summoned moon weapons but you haven't cast the moonblade spell yet
     # then skip those weapon skills and train something else while we wait for moonblade spell to be cast.
@@ -4175,7 +4178,7 @@ class GameState
                 :casting, :casting_cfb, :casting_cfw, :casting_nr, :casting_consume, :casting_cyclic, :casting_moonblade,
                 :casting_regalia, :casting_sorcery, :casting_weapon_buff, :charges, :charges_total,
                 :clean_up_step, :constructs, :cooldown_timers, :current_weapon_skill,
-                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast,
+                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast, :last_action_count, :last_exp,
                 :last_regalia_type, :last_weapon_skill, :loaded, :mob_died, :need_bundle,
                 :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
                 :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :starlight_values,
@@ -4313,6 +4316,7 @@ class GameState
     end
 
     @last_exp = -1
+    @last_action_count = 0
     @no_gain_list = Hash.new(0)
     @weapons_to_train.each { |skill_name, _weapon_name| @no_gain_list[skill_name] = 0 }
     echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
@@ -4825,16 +4829,22 @@ class GameState
     current_exp = DRSkill.getxp(weapon_skill)
     echo("action count: #{@action_count} vs #{@target_action_count}") if $debug_mode_ct
     echo("skill exp: #{current_exp} vs #{@target_weapon_skill}") if $debug_mode_ct
+    echo("no_gain_list: #{@no_gain_list}") if $debug_mode_ct
+    echo("last_exp: #{@last_exp}") if $debug_mode_ct
+    echo("last_action_count: #{@last_action_count}") if $debug_mode_ct
 
     # gain_check code: logic to account for a skill that is not gaining any MS at all
     if @gain_check && (weapon_skill != nil) then
-      if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
-        @no_gain_list[weapon_skill] += 1
-      else
-        @no_gain_list[weapon_skill] = 0
+      # only check for mindstate movement if there was actually some action in the last CT cycle
+      if (@action_count > @last_action_count) then
+        if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
+          @no_gain_list[weapon_skill] += 1
+        else
+          @no_gain_list[weapon_skill] = 0
+        end
       end
       @last_exp = current_exp
-      echo("updated @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
+      @last_action_count = @action_count
 
       # blacklist skill if it hasn't been gaining for a while
       if (@no_gain_list[weapon_skill] > @gain_check) then
