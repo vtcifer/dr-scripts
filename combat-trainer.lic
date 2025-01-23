@@ -773,8 +773,6 @@ class LootProcess
 
     if ritual.eql?('butcher')
       butcher_corpse(mob_noun, ritual, game_state)
-
-      @last_ritual = ritual
       echo "Last ritual performed: #{@last_ritual}" if $debug_mode_ct
       return
     end
@@ -822,6 +820,7 @@ class LootProcess
     loop do
       result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'], @rituals['construct'])
       game_state.construct(mob_noun) if result.include?(@rituals['construct'])
+      @last_ritual = 'butcher' if result.include?(@rituals['butcher'])
       break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) || result.include?(@rituals['construct']) }
 
       DRC.bput("drop my #{DRC.right_hand}", 'You drop', 'You discard', 'Please rephrase')
