@@ -4886,7 +4886,7 @@ class GameState
         @target_increment = 34
         @focus_threshold_active = true
         return true
-      elsif @focus_threshold_active && weapon_training.any? { |skill, _| DRSkill.getxp(skill) < (@focus_threshold/2) } then
+      elsif @focus_threshold_active && weapon_training.any? { |skill, _| DRSkill.getxp(skill) < (@focus_threshold / 2) } then
         # any weapon below threshold/2
         DRC.message("Spreading attention to all weapons")
         @target_action_count = settings.combat_trainer_action_count
