@@ -4874,7 +4874,7 @@ class GameState
     # a decent minimum hysterisis band.
     # @focus_threshold is mapped to yaml value combat_trainer_focus_threshold
     # Setting the yaml value turns this code on, it will remain dormant otherwise.
-    # 
+    #
     # The code will allow CT to focus on a single weapon once we know all weapons are draining;
     # the focus means there is no weapon switching costs being incurred.
 
