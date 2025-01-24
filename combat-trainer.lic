@@ -4287,6 +4287,9 @@ class GameState
     @target_increment = settings.combat_trainer_target_increment
     echo("  @target_increment: #{@target_increment}") if $debug_mode_ct
 
+    @gain_check = settings.combat_trainer_gain_check
+    echo("  @gain_check: #{@gain_check}") if $debug_mode_ct
+
     @strict_weapon_stance = settings.strict_weapon_stance
     echo("  @strict_weapon_stance: #{@strict_weapon_stance}") if $debug_mode_ct
 
