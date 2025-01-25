@@ -5353,7 +5353,7 @@ class GameState
       else
         @offhand_no_gain_list[@last_offhand_skill] = 0
       end
-       
+
       # blacklist weapon if gain check failed
       if (@offhand_no_gain_list[last_offhand_skill] > @offhand_gain_check) then
         DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
