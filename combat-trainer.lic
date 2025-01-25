@@ -208,7 +208,7 @@ class SetupProcess
       # define what mainhand skills look like
       mainhand_skills = $melee_skills + $thrown_skills + $martial_skills - game_state.aiming_trainables
 
-      # create selection pools of bow/mainhand/offhand groupings 
+      # create selection pools of bow/mainhand/offhand groupings
       bow_selection_pool = new_weapon_skills.select { |skill| $aim_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
       mainhand_selection_pool = new_weapon_skills.select { |skill| mainhand_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
       offhand_selection_pool = new_weapon_skills.select { |skill| game_state.aiming_trainables.include?(skill) && DRSkill.getxp(skill) < 30 }
