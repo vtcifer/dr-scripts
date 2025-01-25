@@ -194,13 +194,13 @@ class SetupProcess
 
     # optional & advanced feature:
     # offhand_trainables is used to preference bows first, and aiming_trainables in mainhand last, to indirectly force
-    # aiming_trainables to be used in the offhand rather than pushing out the training for mainhand only weapons.  
+    # aiming_trainables to be used in the offhand rather than pushing out the training for mainhand only weapons.
     # It is only active when focus_threshold is active, after all the mindstates are off zero and have a drain buffer.
     # There are three selection pools, one for bows, one for mainhand and one for aiming_trainables in mainhand, and skill is chosen
     # preferentially in that order
     # Each selection pool has a threshold that is needed to "break out" of a selection pool.  e.g. when all bow weapons are > 30
     # the code will move onto the mainhand selection pool.
-    # 30 is a magic number and there are multiple factors determining what would be an optimal value, which may not practically 
+    # 30 is a magic number and there are multiple factors determining what would be an optimal value, which may not practically
     # exist for the wide range of CT use cases.
 
     if @offhand_trainables && game_state.focus_threshold_active then
@@ -209,9 +209,9 @@ class SetupProcess
       mainhand_skills = $melee_skills + $thrown_skills + $martial_skills - game_state.aiming_trainables
 
       # create selection pools of bow/mainhand/offhand groupings 
-      bow_selection_pool = new_weapon_skills.select {|skill| $aim_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
-      mainhand_selection_pool = new_weapon_skills.select {|skill| mainhand_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
-      offhand_selection_pool = new_weapon_skills.select {|skill| game_state.aiming_trainables.include?(skill) && DRSkill.getxp(skill) < 30 }
+      bow_selection_pool = new_weapon_skills.select { |skill| $aim_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
+      mainhand_selection_pool = new_weapon_skills.select { |skill| mainhand_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
+      offhand_selection_pool = new_weapon_skills.select { |skill| game_state.aiming_trainables.include?(skill) && DRSkill.getxp(skill) < 30 }
 
       echo("bow_selection_pool #{bow_selection_pool}") if $debug_mode_ct
       echo("mainhand_selection_pool #{mainhand_selection_pool}") if $debug_mode_ct
