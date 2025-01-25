@@ -4874,7 +4874,7 @@ class GameState
         return true
 
         # kludge for rare transient condition in gain_check (most of mainhand skills blacklisted & remaining all at 34)
-        @skip_all_weapon_max_check = true if @weapons_to_train.all? { |skill_name, _weapon_name| DRSkill.getxp(skill_name) == 34}
+        @skip_all_weapon_max_check = true if @weapons_to_train.all? { |skill_name, _weapon_name| DRSkill.getxp(skill_name) == 34 }
       end
 
       # if weapon is at 34, don't black list but do (try to) switch weapons.
@@ -5340,28 +5340,28 @@ class GameState
     # the code will modify the options list if active
     if @offhand_gain_check then
 
-        # if we know answer is empty list, go right to the end and bypass unwanted side effects
-        return nil if ((options - @offhand_blacklist) == [])
+      # if we know answer is empty list, go right to the end and bypass unwanted side effects
+      return nil if ((options - @offhand_blacklist) == [])
 
-        # @offland_last_exp and @last_offhand_skill are picked up off in the attack_aimed code where the offhand commands are sent
-        offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
+      # @offland_last_exp and @last_offhand_skill are picked up off in the attack_aimed code where the offhand commands are sent
+      offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
 
-        # keep track of no gain occurences
-        if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34) then
-           @offhand_no_gain_list[@last_offhand_skill] += 1
-        else
-            @offhand_no_gain_list[@last_offhand_skill] = 0
-        end
+      # keep track of no gain occurences
+      if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34) then
+        @offhand_no_gain_list[@last_offhand_skill] += 1
+      else
+        @offhand_no_gain_list[@last_offhand_skill] = 0
+      end
        
-       # blacklist weapon if gain check failed
-       if (@offhand_no_gain_list[last_offhand_skill] > @offhand_gain_check) then
-          DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
-          @offhand_blacklist |= [@last_offhand_skill]
-        end
-        options -= @offhand_blacklist
-        
-        # temporarily lock out skill if mindlocked
-        options -= [@last_offhand_skill] if offhand_current_exp == 34
+      # blacklist weapon if gain check failed
+      if (@offhand_no_gain_list[last_offhand_skill] > @offhand_gain_check) then
+        DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
+        @offhand_blacklist |= [@last_offhand_skill]
+      end
+      options -= @offhand_blacklist
+
+      # temporarily lock out skill if mindlocked
+      options -= [@last_offhand_skill] if offhand_current_exp == 34
     end
 
     echo "determine_aiming_skill::options: #{options}" if $debug_mode_ct
