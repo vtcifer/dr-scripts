@@ -4871,10 +4871,11 @@ class GameState
         @weapons_to_train.delete(weapon_skill)
         # must suppress for offhand too - doesn't make sense to train in offhand if mainhand doesn't train + it breaks code
         @offhand_blacklist |= [weapon_skill]
-        return true
 
         # kludge for rare transient condition in gain_check (most of mainhand skills blacklisted & remaining all at 34)
         @skip_all_weapon_max_check = true if @weapons_to_train.all? { |skill_name, _weapon_name| DRSkill.getxp(skill_name) == 34 }
+
+        return true
       end
 
       # if weapon is at 34, don't black list but do (try to) switch weapons.
