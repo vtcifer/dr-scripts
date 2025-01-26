@@ -166,13 +166,16 @@ class SetupProcess
   def determine_next_to_train(game_state, weapon_training, ending_ranged)
     return unless game_state.skill_done? || !weapon_training[game_state.weapon_skill] || ending_ranged
 
-    unless @ignore_weapon_mindstate
+    # skip_all_weapon_max_check is a kludge for a transient condition from blacklisting a skill with
+    # all remaining skills at 34
+    unless @ignore_weapon_mindstate || game_state.skip_all_weapon_max_check
       # check if all weapons are maxed exp to prevent rapid cycling
       if weapon_training.reject { |skill, _| DRSkill.getxp(skill) == 34 }.empty?
         echo 'all weapons locked, not switching' if $debug_mode_ct
         return
       end
     end
+    game_state.skip_all_weapon_max_check = false
 
     echo('new skill needed for training') if $debug_mode_ct
 
@@ -3722,10 +3725,11 @@ class AttackProcess
       echo "attack_aimed::aiming_trainables:skill: #{skill}" if $debug_mode_ct
       return unless skill
 
-      # if aiming_trainable is locked, don't continue to train it!
-      return if DRSkill.getxp(skill) > 32
-
       weapon_name = game_state.wield_offhand_weapon(skill)
+
+      # get information for offhand_gain_check
+      game_state.offhand_last_exp = DRSkill.getxp(skill)
+      game_state.last_offhand_skill = skill
 
       actions = if skill.eql?('Tactics')
                   $tactics_actions
@@ -4223,10 +4227,10 @@ class GameState
                 :casting, :casting_cfb, :casting_cfw, :casting_nr, :casting_consume, :casting_cyclic, :casting_moonblade,
                 :casting_regalia, :casting_sorcery, :casting_weapon_buff, :charges, :charges_total,
                 :clean_up_step, :constructs, :cooldown_timers, :current_weapon_skill,
-                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast, :last_action_count, :last_exp,
+                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast, :last_action_count, :last_exp, :last_offhand_skill,
                 :last_regalia_type, :last_weapon_skill, :loaded, :mob_died, :need_bundle,
-                :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
-                :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :starlight_values,
+                :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :offhand_last_exp, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
+                :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :skip_all_weapon_max_check, :starlight_values,
                 :swap_regalia_type, :target_weapon_skill, :use_charged_maneuvers,
                 :whirlwind_trainables, :wounds
 
@@ -4273,6 +4277,7 @@ class GameState
     @wounds = {}
     @blessed_room = false
     @charges_total = nil
+    @skip_all_weapon_max_check = false
 
     # private
     @clean_up_step = nil
@@ -4335,6 +4340,9 @@ class GameState
     @gain_check = settings.combat_trainer_gain_check
     echo("  @gain_check: #{@gain_check}") if $debug_mode_ct
 
+    @offhand_gain_check = settings.combat_trainer_offhand_gain_check
+    echo("  @offhand_gain_check: #{@offhand_gain_check}") if $debug_mode_ct
+
     @strict_weapon_stance = settings.strict_weapon_stance
     echo("  @strict_weapon_stance: #{@strict_weapon_stance}") if $debug_mode_ct
 
@@ -4369,6 +4377,13 @@ class GameState
     @weapons_to_train.each { |skill_name, _weapon_name| @no_gain_list[skill_name] = 0 }
     echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
 
+    @offhand_last_exp = -1
+    @last_offhand_skill = String.new
+    @offhand_blacklist = Array.new
+
+    @offhand_no_gain_list = Hash.new(0)
+    @aiming_trainables.each { |skill_name| @offhand_no_gain_list[skill_name] = 0 }
+    echo("  @offhand_no_gain_list: #{@offhand_no_gain_list}") if $debug_mode_ct
     @focus_threshold_active = false
     @focus_threshold = settings.combat_trainer_focus_threshold
     echo("  @focus_threshold: #{@focus_threshold}") if $debug_mode_ct
@@ -4886,7 +4901,7 @@ class GameState
     echo("last_action_count: #{@last_action_count}") if $debug_mode_ct
 
     # gain_check code: logic to account for a skill that is not gaining any MS at all
-    if @gain_check && (weapon_skill != nil) then
+    if (@gain_check > 0) && !weapon_skill.nil?
       # only check for mindstate movement if there was actually some action in the last CT cycle
       if (@action_count > @last_action_count) then
         if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
@@ -4902,6 +4917,12 @@ class GameState
       if (@no_gain_list[weapon_skill] > @gain_check) then
         DRC.message("WARNING: Suppressing #{weapon_skill} due to skill not training")
         @weapons_to_train.delete(weapon_skill)
+        # must suppress for offhand too - doesn't make sense to train in offhand if mainhand doesn't train + it breaks code
+        @offhand_blacklist |= [weapon_skill]
+
+        # kludge for rare transient condition in gain_check (most of mainhand skills blacklisted & remaining all at 34)
+        @skip_all_weapon_max_check = true if @weapons_to_train.all? { |skill_name, _weapon_name| DRSkill.getxp(skill_name) == 34 }
+
         return true
       end
 
@@ -5392,6 +5413,37 @@ class GameState
     options -= weapon_training.select { |_skill, weapon| damaris_weapon_options.include?(weapon) }.keys # remove all weapons part of the same Damaris weapon group since they're the same item
     options -= weapon_training.select { |_skill, weapon| swappable_weapon?(weapon) }.keys # remove swappable weapons because they might be swapped into a two-handed state
     options -= @summoned_weapons.map { |info| info['name'] } # remove summoned weapons because they may not exist for offhand use
+
+    # offhand_gain_check code: add in some extra logic to stop training an offhand wielded
+    # weapon that is not gaining any MS at all.  Reduces the opportunity cost.
+    # blacklist on the offhand will not blacklist on mainhand by intent, as offhand has accuracy penalties
+    # the code will modify the options list if active
+    if @offhand_gain_check > 0
+
+      # if we know answer is empty list, go right to the end and bypass unwanted side effects
+      return nil if (options - @offhand_blacklist).empty?
+
+      # @offland_last_exp and @last_offhand_skill are picked up off in the attack_aimed code where the offhand commands are sent
+      offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
+
+      # keep track of no gain occurences
+      if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34)
+        @offhand_no_gain_list[@last_offhand_skill] += 1
+      else
+        @offhand_no_gain_list[@last_offhand_skill] = 0
+      end
+
+      # blacklist weapon if gain check failed
+      unless @offhand_no_gain_list[last_offhand_skill] <= @offhand_gain_check
+        DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
+        @offhand_blacklist |= [@last_offhand_skill]
+      end
+      options -= @offhand_blacklist
+
+      # temporarily lock out skill if mindlocked
+      options -= [@last_offhand_skill] unless offhand_current_exp < 34
+    end
+
     echo "determine_aiming_skill::options: #{options}" if $debug_mode_ct
     sort_by_rate_then_rank(options).first
   end
