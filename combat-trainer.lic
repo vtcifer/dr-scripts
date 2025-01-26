@@ -4324,6 +4324,10 @@ class GameState
     @weapons_to_train.each { |skill_name, _weapon_name| @no_gain_list[skill_name] = 0 }
     echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
 
+    @focus_threshold_active = false
+    @focus_threshold = settings.combat_trainer_focus_threshold
+    echo("  @focus_threshold: #{@focus_threshold}") if $debug_mode_ct
+
     @use_stealth_attacks = settings.use_stealth_attacks
     echo("  @use_stealth_attacks: #{@use_stealth_attacks}") if $debug_mode_ct
 
@@ -4862,6 +4866,37 @@ class GameState
       end
     end
 
+    # focus_threshold code: if all the weapons being trained are above focus_threshold,
+    # @target_increment is set to 34 and @target_action_count to 1000.
+    # If at any time any weapon is at or below focus_threshold/2, parameters
+    # are restored to yaml values.  The divide by 2 is hysterisis to prevent this
+    # code from bouncing between the two states.  Focus_threshold has a min value of 10 to ensure
+    # a decent minimum hysterisis band.
+    # @focus_threshold is mapped to yaml value combat_trainer_focus_threshold
+    # Setting the yaml value turns this code on, it will remain dormant otherwise.
+    #
+    # The code will allow CT to focus on a single weapon once we know all weapons are draining;
+    # the focus means there is no weapon switching costs being incurred.
+
+    if (@focus_threshold > 10)
+      if !@focus_threshold_active && weapon_training.reject { |skill, _| DRSkill.getxp(skill) > @focus_threshold }.empty?
+        # all weapons above threshold
+        DRC.message("Focussing on single weapon")
+        @target_action_count = 1000
+        @target_increment = 34
+        @focus_threshold_active = true
+        return true
+      elsif @focus_threshold_active && weapon_training.any? { |skill, _| DRSkill.getxp(skill) < (@focus_threshold / 2) }
+        # any weapon below threshold/2
+        DRC.message("Spreading attention to all weapons")
+        @target_action_count = settings.combat_trainer_action_count
+        @target_increment = settings.combat_trainer_target_increment
+        @focus_threshold_active = false
+        return true
+      else
+        return false
+      end
+    end
     @action_count >= @target_action_count || current_exp >= @target_weapon_skill
   end
 
