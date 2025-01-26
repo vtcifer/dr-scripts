@@ -383,6 +383,10 @@ combat_trainer_ignore_weapon_mindstate: false
 combat_trainer_target_increment: 3
 # how many actions to do if you dont hit the mindstate goal before swapping weapons
 combat_trainer_action_count: 10
+# minimum mindstate threshold (for all weapons being trained) to begin focussing on single weapons to minimise weapon switching.
+# default is 0 which means feature is not active.  Change to 10 or higher to activate.
+combat_trainer_focus_threshold: 0
+
 dual_load: false
 # use_stealth_attacks true will train stealth by hiding and attacking/backstabbing from stealth.  Thieves also use backstab: below
 use_stealth_attacks: false
