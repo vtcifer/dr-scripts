@@ -384,6 +384,10 @@ combat_trainer_action_count: 10
 # Optional feature to preference using aiming_trainables on the offhand ONLY, to reduce competition from aiming_trainables using mainhand attacks
 # It is contingent on combat_trainer_focus_threshold being active.
 combat_trainer_offhand_trainables: false
+# minimum mindstate threshold (for all weapons being trained) to begin focussing on single weapons to minimise weapon switching.
+# default is 0 which means feature is not active.  Change to 10 or higher to activate.
+combat_trainer_focus_threshold: 0
+
 
 dual_load: false
 # use_stealth_attacks true will train stealth by hiding and attacking/backstabbing from stealth.  Thieves also use backstab: below
