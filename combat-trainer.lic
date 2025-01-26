@@ -5342,7 +5342,7 @@ class GameState
     if @offhand_gain_check then
 
       # if we know answer is empty list, go right to the end and bypass unwanted side effects
-      return nil if ((options - @offhand_blacklist) == [])
+      return nil if (options - @offhand_blacklist).empty?
 
       # @offland_last_exp and @last_offhand_skill are picked up off in the attack_aimed code where the offhand commands are sent
       offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
