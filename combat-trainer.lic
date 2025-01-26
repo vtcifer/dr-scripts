@@ -4901,7 +4901,7 @@ class GameState
     echo("last_action_count: #{@last_action_count}") if $debug_mode_ct
 
     # gain_check code: logic to account for a skill that is not gaining any MS at all
-    if (@gain_check > 0) && (weapon_skill != nil) then
+    if (@gain_check > 0) && !weapon_skill.nil?
       # only check for mindstate movement if there was actually some action in the last CT cycle
       if (@action_count > @last_action_count) then
         if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
