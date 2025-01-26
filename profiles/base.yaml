@@ -381,6 +381,10 @@ combat_trainer_ignore_weapon_mindstate: false
 combat_trainer_target_increment: 3
 # how many actions to do if you dont hit the mindstate goal before swapping weapons
 combat_trainer_action_count: 10
+# Optional feature to preference using aiming_trainables on the offhand ONLY, to reduce competition from aiming_trainables using mainhand attacks
+# It is contingent on combat_trainer_focus_threshold being active.
+combat_trainer_offhand_trainables: false
+
 dual_load: false
 # use_stealth_attacks true will train stealth by hiding and attacking/backstabbing from stealth.  Thieves also use backstab: below
 use_stealth_attacks: false
