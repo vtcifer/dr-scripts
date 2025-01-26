@@ -4227,7 +4227,7 @@ class GameState
                 :casting, :casting_cfb, :casting_cfw, :casting_nr, :casting_consume, :casting_cyclic, :casting_moonblade,
                 :casting_regalia, :casting_sorcery, :casting_weapon_buff, :charges, :charges_total,
                 :clean_up_step, :constructs, :cooldown_timers, :current_weapon_skill,
-                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast, :last_action_count, :last_exp, :last_offhand_skill,
+                :currently_whirlwinding, :dance_queue, :dancing, :danger, :focus_threshold_active, :hide_on_cast, :last_action_count, :last_exp, :last_offhand_skill,
                 :last_regalia_type, :last_weapon_skill, :loaded, :mob_died, :need_bundle,
                 :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :offhand_last_exp, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
                 :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :skip_all_weapon_max_check, :starlight_values,
