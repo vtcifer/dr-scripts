@@ -4960,8 +4960,6 @@ class GameState
         @target_increment = settings.combat_trainer_target_increment
         @focus_threshold_active = false
         return true
-      else
-        return false
       end
     end
     @action_count >= @target_action_count || current_exp >= @target_weapon_skill
