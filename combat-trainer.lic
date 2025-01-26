@@ -4853,7 +4853,7 @@ class GameState
     echo("last_action_count: #{@last_action_count}") if $debug_mode_ct
 
     # gain_check code: logic to account for a skill that is not gaining any MS at all
-    if @gain_check && (weapon_skill != nil) then
+    if (@gain_check > 0) && (weapon_skill != nil) then
       # only check for mindstate movement if there was actually some action in the last CT cycle
       if (@action_count > @last_action_count) then
         if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
@@ -5339,7 +5339,7 @@ class GameState
     # weapon that is not gaining any MS at all.  Reduces the opportunity cost.
     # blacklist on the offhand will not blacklist on mainhand by intent, as offhand has accuracy penalties
     # the code will modify the options list if active
-    if @offhand_gain_check then
+    if @offhand_gain_check > 0
 
       # if we know answer is empty list, go right to the end and bypass unwanted side effects
       return nil if (options - @offhand_blacklist).empty?
