@@ -4384,7 +4384,6 @@ class GameState
     @offhand_no_gain_list = Hash.new(0)
     @aiming_trainables.each { |skill_name| @offhand_no_gain_list[skill_name] = 0 }
     echo("  @offhand_no_gain_list: #{@offhand_no_gain_list}") if $debug_mode_ct
-    
     @focus_threshold_active = false
     @focus_threshold = settings.combat_trainer_focus_threshold
     echo("  @focus_threshold: #{@focus_threshold}") if $debug_mode_ct
