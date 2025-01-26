@@ -5348,21 +5348,21 @@ class GameState
       offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
 
       # keep track of no gain occurences
-      if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34) then
+      if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34)
         @offhand_no_gain_list[@last_offhand_skill] += 1
       else
         @offhand_no_gain_list[@last_offhand_skill] = 0
       end
 
       # blacklist weapon if gain check failed
-      if (@offhand_no_gain_list[last_offhand_skill] > @offhand_gain_check) then
+      unless @offhand_no_gain_list[last_offhand_skill] <= @offhand_gain_check
         DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
         @offhand_blacklist |= [@last_offhand_skill]
       end
       options -= @offhand_blacklist
 
       # temporarily lock out skill if mindlocked
-      options -= [@last_offhand_skill] if offhand_current_exp == 34
+      options -= [@last_offhand_skill] unless offhand_current_exp < 34
     end
 
     echo "determine_aiming_skill::options: #{options}" if $debug_mode_ct
