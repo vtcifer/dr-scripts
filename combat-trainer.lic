@@ -4333,8 +4333,8 @@ class GameState
     echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
 
     @offhand_last_exp = -1
-    @last_offhand_skill = ""
-    @offhand_blacklist = []
+    @last_offhand_skill = String.new
+    @offhand_blacklist = Array.new
 
     @offhand_no_gain_list = Hash.new(0)
     @aiming_trainables.each { |skill_name| @offhand_no_gain_list[skill_name] = 0 }
