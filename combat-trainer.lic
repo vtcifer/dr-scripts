@@ -4945,7 +4945,7 @@ class GameState
     # The code will allow CT to focus on a single weapon once we know all weapons are draining;
     # the focus means there is no weapon switching costs being incurred.
 
-    if (@focus_threshold >= 10)
+    if (@focus_threshold > 1)
       if !@focus_threshold_active && weapon_training.reject { |skill, _| DRSkill.getxp(skill) > @focus_threshold }.empty?
         # all weapons above threshold
         DRC.message("Focussing on single weapon")
