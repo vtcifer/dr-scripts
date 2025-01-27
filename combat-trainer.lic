@@ -4310,6 +4310,7 @@ class GameState
 
     @target_action_count = settings.combat_trainer_action_count
     echo("  @target_action_count: #{@target_action_count}") if $debug_mode_ct
+    @target_action_count_original = @target_action_count
 
     @dance_threshold = settings.dance_threshold.to_i
     echo("  @dance_threshold: #{@dance_threshold}") if $debug_mode_ct
@@ -4337,6 +4338,7 @@ class GameState
 
     @target_increment = settings.combat_trainer_target_increment
     echo("  @target_increment: #{@target_increment}") if $debug_mode_ct
+    @target_increment_original = @target_increment
 
     @gain_check = settings.combat_trainer_gain_check
     echo("  @gain_check: #{@gain_check}") if $debug_mode_ct
@@ -4956,8 +4958,8 @@ class GameState
       elsif @focus_threshold_active && weapon_training.any? { |skill, _| DRSkill.getxp(skill) < (@focus_threshold / 2) }
         # any weapon below threshold/2
         DRC.message("Spreading attention to all weapons")
-        @target_action_count = settings.combat_trainer_action_count
-        @target_increment = settings.combat_trainer_target_increment
+        @target_action_count = @target_action_count_original
+        @target_increment = @target_increment_original
         @focus_threshold_active = false
         return true
       end
