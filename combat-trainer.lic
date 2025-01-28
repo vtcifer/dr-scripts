@@ -1316,7 +1316,7 @@ class SpellProcess
 
     @magic_gain_check = settings.combat_trainer_magic_gain_check
     echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
-    
+
     @magic_no_gain_list = Hash.new(0)
     @offensive_spells.each { |spell| @magic_no_gain_list[spell['skill']] = 0 }
     echo("  @magic_no_gain_list: #{@magic_no_gain_list}") if $debug_mode_ct
@@ -1822,7 +1822,6 @@ class SpellProcess
 
     fput("command #{@command}")
     @command = nil
-
   end
 
   def check_spell_timer?(data)
@@ -2111,7 +2110,7 @@ class SpellProcess
       @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
     end
   end
-  
+
   def check_offensive(game_state)
     echo "Checking offensive spells:" if $debug_mode_ct
     return if game_state.casting
@@ -2162,7 +2161,7 @@ class SpellProcess
       @magic_last_spell = data
       # if there is a spell to cast, snapshot the spell and mindstate
       @magic_last_exp = data.nil? ? -1 : DRSkill.getxp(data['skill']) 
-      
+
       prepare_spell(data, game_state)
     end
 
