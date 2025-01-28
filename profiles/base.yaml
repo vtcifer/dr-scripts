@@ -333,6 +333,9 @@ summoned_weapons_ingot:
 # See combat-trainer documentation above for some attributes.
 buff_spells:
 combat_buff_waggle:
+
+# Default setting is combat_spells will take priority over offensive_spells
+prioritize_offensive_spells: false
 # offensive_spells are what combat-trainer will use offensively.
 # See combat-trainer documentation above for some attributes.
 offensive_spells:
