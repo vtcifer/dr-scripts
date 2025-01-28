@@ -1318,7 +1318,7 @@ class SpellProcess
     echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
     
     @magic_no_gain_list = Hash.new(0)
-    @offensive_spells.each { |spell| @magic_no_gain_list[spell['name']] = 0 }
+    @offensive_spells.each { |spell| @magic_no_gain_list[spell['skill']] = 0 }
     echo("  @magic_no_gain_list: #{@magic_no_gain_list}") if $debug_mode_ct
 
     @necromancer_healing = settings.necromancer_healing
@@ -2097,16 +2097,17 @@ class SpellProcess
 
     echo "Blacklisting non-training spells:" if $debug_mode_ct
 
-    # if there has been no gain from last cast, its a little black cross against the spell
+    # if there has been no gain from last cast, and its been flagged with cast_only_to_train its a little black cross against the skill
     if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp) && @magic_last_spell['cast_only_to_train'] 
-      @magic_no_gain_list[@magic_last_spell['name']] += 1
+      @magic_no_gain_list[@magic_last_spell['skill']] += 1
     else
-      @magic_no_gain_list[@magic_last_spell['name']] = 0
+      @magic_no_gain_list[@magic_last_spell['skill']] = 0
     end
 
     # blacklist offensive spell's skill by removing from @offensive_spells if threshold is exceeded
-    if (@magic_no_gain_list[@magic_last_spell['name']] > @magic_gain_check)
-      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to #{@magic_last_spell['name']} not training and was marked cast_only_to_train")
+    # side effect is that any spells with cast_only_to_train not set will also get hit by blacklist (discord consensus 28/1/2025)
+    if (@magic_no_gain_list[@magic_last_spell['skill']] > @magic_gain_check)
+      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to spells within that skill that has cast_only_to_train set, not gaining mindstates.")
       @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
     end
   end
