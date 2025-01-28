@@ -1308,6 +1308,16 @@ class SpellProcess
     echo("  @offensive_spell_cycle: #{@offensive_spell_cycle}") if $debug_mode_ct
 
     @CST_before = true
+    @magic_last_spell = nil
+    @magic_last_exp = -1
+    @magic_last_exp_sorc = -1
+
+    @magic_gain_check = settings.combat_trainer_magic_gain_check
+    echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
+    
+    @magic_no_gain_list = Hash.new(0)
+    @offensive_spells.each { |spell| @magic_no_gain_list[spell['name']] = 0 }
+    echo("  @magic_no_gain_list: #{@magic_no_gain_list}") if $debug_mode_ct
 
     @necromancer_healing = settings.necromancer_healing
     echo("  @necromancer_healing: #{@necromancer_healing}") if $debug_mode_ct
@@ -1780,6 +1790,10 @@ class SpellProcess
     game_state.casting_cfb = false
     game_state.casting_cfw = false
     game_state.casting_cyclic = false
+
+    # once spell is cast, check on its mindstate performance and make decision if it needs blacklisting
+    blacklist_spells(game_state)
+
     if game_state.casting_sorcery
       game_state.casting_sorcery = false
       @equipment_manager.wield_weapon?(game_state.weapon_name, game_state.weapon_skill)
@@ -1809,6 +1823,7 @@ class SpellProcess
 
     fput("command #{@command}")
     @command = nil
+
   end
 
   def check_spell_timer?(data)
@@ -2079,33 +2094,33 @@ class SpellProcess
     prepare_spell(data, game_state, true)
   end
 
+  def blacklist_spells(game_state)
+    return if game_state.casting
+
+    if @magic_gain_check > 0
+      echo "Blacklisting non-training spells:" if $debug_mode_ct
+
+      # if there has been no gain from last cast, its a little black cross against the spell
+      # right now, it checks for no gain of either spell skill OR sorcery skill (if sorcerous).  Logic will need refining in review / testing.
+      if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp || DRSkill.getxp('Sorcery') <= @magic_last_exp_sorc) 
+        @magic_no_gain_list[@magic_last_spell['name']] += 1
+      else
+        @magic_no_gain_list[@magic_last_spell['name']] = 0
+      end
+
+      # blacklist offensive spell by removing from @offensive_spells if threshold is exceeded
+      if (@magic_no_gain_list[@magic_last_spell['name']] > @magic_gain_check)
+        DRC.message("WARNING: Suppressing #{@magic_last_spell['name']} due to spell not training")
+       @offensive_spells.reject! { |spell| spell['name'] == @magic_last_spell['name'] }
+      end    
+    end
+  end
+
   def check_offensive(game_state)
     echo "Checking offensive spells:" if $debug_mode_ct
     return if game_state.casting
     return if game_state.npcs.empty?
     return if DRStats.mana < @offensive_spell_mana_threshold
-
-    @OST_gain_check = settings.ct_blah
-    @OST_last_spell = nil
-    @OST_last_exp = -1
-    @OST_last_exp_sorc = -1
-    @OST_no_gain_list = Hash.new(0)
-    @offensive_spells.each { |spell| @OST_no_gain_list[spell['name']] = 0 }
-    echo("  @OST_no_gain_list: #{@OST_no_gain_list}") if $debug_mode_ct
-
-    # if there has been no gain from last cast (there may be edge cases due to lag / long RT actions), its a little black cross against the skill
-    # right now, it checks for no gain of either spell skill OR sorcery skill (if sorcerous).  Logic will need refining in review / testing.
-    if (DRSkill.getxp(@magic_last_spell['skill']) <= @OST_last_exp || DRSkill.getxp('Sorcery') <= @OST_last_exp_sorc) 
-      @OST_no_gain_list[@magic_last_spell['name']] += 1
-    else
-      @OST_no_gain_list[@magic_last_spell['name']] = 0
-    end
-    
-    # blacklist offensive spell by removing from @offensive_spells if threshold is exceeded
-    if (@OST_no_gain_list[@OST_last_spell['name']] > @OST_gain_check)
-        DRC.message("WARNING: Suppressing #{@OST_last_spell['name']} due to spell not training")
-        @offensive_spells.reject! { |spell| spell['name'] == @OST_last_spell['name'] }
-    end
 
     echo "Figuring out ready offensive spells..." if $debug_mode_ct
     ready_spells = @offensive_spells
@@ -2148,14 +2163,14 @@ class SpellProcess
       end
     else
       # set/reset spell mindstate tracking data
-      @OST_last_spell = data
-      @OST_last_exp = -1
-      @OST_last_exp_sorc = -1
+      @magic_last_spell = data
+      @magic_last_exp = -1
+      @magic_last_exp_sorc = -1
       # if there is a spell to cast, snapshot the spell and mindstate
       unless data.nil?
         @CST_before = false # to force a switch to CST after this OST cast is done
-        @OST_last_exp = DRSkill.getxp(data['skill'])
-        @OST_last_exp_sorc = DRSkill.getxp('Sorcery') if spell_is_sorcery?(data)
+        @magic_last_exp = DRSkill.getxp(data['skill'])
+        @magic_last_exp_sorc = DRSkill.getxp('Sorcery') if spell_is_sorcery?(data)
       end
       prepare_spell(data, game_state)
     end
