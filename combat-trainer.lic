@@ -1307,6 +1307,8 @@ class SpellProcess
     @offensive_spell_cycle = settings.offensive_spell_cycle
     echo("  @offensive_spell_cycle: #{@offensive_spell_cycle}") if $debug_mode_ct
 
+    @CST_before = true
+
     @necromancer_healing = settings.necromancer_healing
     echo("  @necromancer_healing: #{@necromancer_healing}") if $debug_mode_ct
 
@@ -1517,8 +1519,16 @@ class SpellProcess
     check_starlight(game_state)
     check_avtalia(game_state)
     check_buffs(game_state)
-    check_training(game_state)
-    check_offensive(game_state)
+
+    # alternates between CST and OST to give both groups of spells a chance to cast
+    if @CST_before
+      check_offensive(game_state)
+      check_training(game_state)
+    else
+      check_training(game_state)
+      check_offensive(game_state)
+    end
+
     check_current(game_state)
 
     false
@@ -1853,6 +1863,7 @@ class SpellProcess
       game_state.casting_sorcery = true
     end
     prepare_spell(data, game_state)
+    @CST_before = true unless data.nil?
     Flags.reset('ct-spelllost')
   end
 
@@ -2115,6 +2126,7 @@ class SpellProcess
       end
     else
       prepare_spell(data, game_state)
+      @CST_before = false unless data.nil?
     end
 
     Flags.reset('ct-spelllost')
