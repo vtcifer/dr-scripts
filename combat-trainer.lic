@@ -2106,7 +2106,7 @@ class SpellProcess
     # blacklist offensive spell's skill by removing from @offensive_spells if threshold is exceeded
     # side effect is that any spells with cast_only_to_train not set will also get hit by blacklist (discord consensus 28/1/2025)
     if (@magic_no_gain_list[@magic_last_spell['skill']] > @magic_gain_check)
-      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to spells within that skill that has cast_only_to_train set, not gaining mindstates.")
+      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
       @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
     end
   end
