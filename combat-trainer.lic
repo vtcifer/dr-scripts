@@ -2160,10 +2160,10 @@ class SpellProcess
       # set/reset spell mindstate tracking data
       @magic_last_spell = data
       # if there is a spell to cast, snapshot the spell and mindstate
-      @magic_last_exp = data.nil? ? -1 : DRSkill.getxp(data['skill']) 
+      @magic_last_exp = data.nil? ? -1 : DRSkill.getxp(data['skill'])
 
       prepare_spell(data, game_state)
-    end
+  end
 
     Flags.reset('ct-spelllost')
   end
