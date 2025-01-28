@@ -2164,7 +2164,6 @@ class SpellProcess
 
       prepare_spell(data, game_state)
     end
-  end
 
     Flags.reset('ct-spelllost')
   end
