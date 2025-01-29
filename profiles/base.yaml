@@ -333,6 +333,8 @@ summoned_weapons_ingot:
 # See combat-trainer documentation above for some attributes.
 buff_spells:
 combat_buff_waggle:
+# Default setting is combat_spell_training: will take priority over offensive_spells:
+prioritize_offensive_spells: false
 # offensive_spells are what combat-trainer will use offensively.
 # See combat-trainer documentation above for some attributes.
 offensive_spells:
@@ -393,6 +395,8 @@ combat_trainer_offhand_trainables: false
 # minimum mindstate threshold (for all weapons being trained) to begin focussing on single weapons to minimise weapon switching.
 # default is 0 which means feature is not active.  Change to 10 or higher to activate.
 combat_trainer_focus_threshold: 0
+# roughly number of consecutive spell casts of a single skill (e.g. Targeted Magic)that need to not gain mindstate (mob too low) before it is blacklisted.
+combat_trainer_magic_gain_check: 3
 
 dual_load: false
 # use_stealth_attacks true will train stealth by hiding and attacking/backstabbing from stealth.  Thieves also use backstab: below

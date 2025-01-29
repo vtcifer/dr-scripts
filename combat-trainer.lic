@@ -1289,6 +1289,9 @@ class SpellProcess
     end
     echo("  @buff_spells: #{@buff_spells}") if $debug_mode_ct
 
+    @prioritize_offensive_spells = settings.prioritize_offensive_spells
+    echo("  @prioritize_offensive_spells: #{@prioritize_offensive_spells}") if $debug_mode_ct
+
     @offensive_spells = settings.offensive_spells
     echo("  @offensive_spells: #{@offensive_spells}") if $debug_mode_ct
 
@@ -1306,6 +1309,17 @@ class SpellProcess
 
     @offensive_spell_cycle = settings.offensive_spell_cycle
     echo("  @offensive_spell_cycle: #{@offensive_spell_cycle}") if $debug_mode_ct
+
+    @magic_last_spell = nil
+    @magic_last_exp = -1
+    @magic_last_exp_sorc = -1
+
+    @magic_gain_check = settings.combat_trainer_magic_gain_check
+    echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
+
+    @magic_no_gain_list = Hash.new(0)
+    @offensive_spells.each { |spell| @magic_no_gain_list[spell['skill']] = 0 }
+    echo("  @magic_no_gain_list: #{@magic_no_gain_list}") if $debug_mode_ct
 
     @necromancer_healing = settings.necromancer_healing
     echo("  @necromancer_healing: #{@necromancer_healing}") if $debug_mode_ct
@@ -1517,8 +1531,13 @@ class SpellProcess
     check_starlight(game_state)
     check_avtalia(game_state)
     check_buffs(game_state)
-    check_training(game_state)
-    check_offensive(game_state)
+    if @prioritize_offensive_spells
+      check_offensive(game_state)
+      check_training(game_state)
+    else
+      check_training(game_state)
+      check_offensive(game_state)
+    end
     check_current(game_state)
 
     false
@@ -1770,6 +1789,10 @@ class SpellProcess
     game_state.casting_cfb = false
     game_state.casting_cfw = false
     game_state.casting_cyclic = false
+
+    # once spell is cast, check on its mindstate performance and make decision if it needs blacklisting
+    blacklist_spells(game_state)
+
     if game_state.casting_sorcery
       game_state.casting_sorcery = false
       @equipment_manager.wield_weapon?(game_state.weapon_name, game_state.weapon_skill)
@@ -2068,6 +2091,26 @@ class SpellProcess
     prepare_spell(data, game_state, true)
   end
 
+  def blacklist_spells(game_state)
+    return if game_state.casting
+
+    echo "Blacklisting non-training spells:" if $debug_mode_ct
+
+    # if there has been no gain from last cast, and its been flagged with cast_only_to_train its a little black cross against the skill
+    if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp) && @magic_last_spell['cast_only_to_train'] && (DRSkill.getxp(@magic_last_spell['skill']) < 34)
+      @magic_no_gain_list[@magic_last_spell['skill']] += 1
+    else
+      @magic_no_gain_list[@magic_last_spell['skill']] = 0
+    end
+
+    # blacklist offensive spell's skill by removing from @offensive_spells if threshold is exceeded
+    # side effect is that any spells with cast_only_to_train not set will also get hit by blacklist (discord consensus 28/1/2025)
+    if (@magic_no_gain_list[@magic_last_spell['skill']] > @magic_gain_check)
+      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
+      @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
+    end
+  end
+
   def check_offensive(game_state)
     echo "Checking offensive spells:" if $debug_mode_ct
     return if game_state.casting
@@ -2114,6 +2157,11 @@ class SpellProcess
         return
       end
     else
+      # track last spell for magic_gain_check
+      @magic_last_spell = data
+      # if there is a spell to cast, snapshot the relevant skill's mindstate
+      @magic_last_exp = data.nil? ? -1 : DRSkill.getxp(data['skill'])
+
       prepare_spell(data, game_state)
     end
 
