@@ -2097,7 +2097,7 @@ class SpellProcess
     echo "Blacklisting non-training spells:" if $debug_mode_ct
 
     # if there has been no gain from last cast, and its been flagged with cast_only_to_train its a little black cross against the skill
-    if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp) && @magic_last_spell['cast_only_to_train'] && (DRSkill.getxp(@magic_last_spell['skill']) < 34)
+    if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp) && (@magic_last_spell['cast_only_to_train'] || @cast_only_to_train) && (DRSkill.getxp(@magic_last_spell['skill']) < 34)
       @magic_no_gain_list[@magic_last_spell['skill']] += 1
     else
       @magic_no_gain_list[@magic_last_spell['skill']] = 0
