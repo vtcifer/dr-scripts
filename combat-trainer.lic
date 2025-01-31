@@ -1312,7 +1312,6 @@ class SpellProcess
 
     @magic_last_spell = nil
     @magic_last_exp = -1
-    @magic_last_exp_sorc = -1
 
     @magic_gain_check = settings.combat_trainer_magic_gain_check
     echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
