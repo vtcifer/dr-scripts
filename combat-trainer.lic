@@ -1875,10 +1875,6 @@ class SpellProcess
       game_state.casting_sorcery = true
     end
 
-    # clear magic_gain_check variables for CST as we're not doing that currently.
-    @magic_last_spell = nil
-    @magic_last_exp = -1
-
     prepare_spell(data, game_state)
     Flags.reset('ct-spelllost')
   end
@@ -2113,6 +2109,10 @@ class SpellProcess
       DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
       @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
     end
+
+    # clear magic_gain_check variables and wait for them to be set by the next applicable casting def (OST only at this point)
+    @magic_last_spell = nil
+    @magic_last_exp = -1
   end
 
   def check_offensive(game_state)
