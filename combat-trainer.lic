@@ -1875,6 +1875,11 @@ class SpellProcess
       echo 'Preparing a sorcery spell, held items will be stowed to prevent item loss' if $debug_mode_ct
       game_state.casting_sorcery = true
     end
+
+    # clear magic_gain_check variables for CST as we're not doing that currently.
+    @magic_last_spell = nil
+    @magic_last_exp = -1
+
     prepare_spell(data, game_state)
     Flags.reset('ct-spelllost')
   end
