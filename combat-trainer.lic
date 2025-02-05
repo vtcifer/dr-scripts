@@ -1163,6 +1163,8 @@ class SafetyProcess
       echo("Couldn't tend bleeders after trying three times. Stopping hunt. Get healed!")
       $HUNTING_BUDDY.stop_hunting
       $COMBAT_TRAINER.stop
+    # special handling for devour - if its active, don't bother going to tendme.  Otherwise, fall through to tendme as the default
+    elsif DRSpells.active_spells['Devour'] && bleeding?
     elsif bleeding? && !Script.running?('tendme')
       echo('Checking for tendable bleeders...') if $debug_mode_ct
       if DRCH.has_tendable_bleeders?
