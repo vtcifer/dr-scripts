@@ -3,9 +3,7 @@
   Documentation: https://elanthipedia.play.net/Lich_script_development#bootstrap
 =end
 
-$BOOTSTRAP_VERSION = '1.0.3'
-DRINFOMON_IN_CORE_LICH ||= false
-DRINFOMON_CORE_LICH_DEFINES ||= []
+$BOOTSTRAP_VERSION = '1.0.4'
 
 class_defs = {
   'drinfomon'         => :DRINFOMON,

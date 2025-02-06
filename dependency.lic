@@ -10,10 +10,16 @@ require 'ostruct'
 require 'digest/sha1'
 require 'monitor'
 
-$DEPENDENCY_VERSION = '2.0.5'
+$DEPENDENCY_VERSION = '2.0.6'
 $MIN_RUBY_VERSION = '3.2.2'
-DRINFOMON_IN_CORE_LICH ||= false
-DRINFOMON_CORE_LICH_DEFINES ||= Array.new
+
+if defined?(Lich::Common) && defined?(DRInfomon) # testing for minimum 5.11.0
+  DRINFOMON_IN_CORE_LICH = true # this should never be true pre 5.11
+  DRINFOMON_CORE_LICH_DEFINES = DRInfomon::DRINFOMON_CORE_LICH_DEFINES # always defined in 5.11
+else
+  DRINFOMON_IN_CORE_LICH = false # this should always be false pre 5.11
+  RINFOMON_CORE_LICH_DEFINES = Array.new # this should always be an empty array pre 5.11
+end
 
 no_pause_all
 no_kill_all
