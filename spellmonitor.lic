@@ -4,7 +4,7 @@
 
 $SPELLMONITOR_VERSION = '2.0.2'
 
-if DRINFOMON_IN_CORE_LICH
+if $DRINFOMON_IN_CORE_LICH
   DRC.message("DRInfomon in core lich includes spellmonitor. Exiting.")
   exit
 end
