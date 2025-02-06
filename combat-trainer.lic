@@ -1163,7 +1163,7 @@ class SafetyProcess
       echo("Couldn't tend bleeders after trying three times. Stopping hunt. Get healed!")
       $HUNTING_BUDDY.stop_hunting
       $COMBAT_TRAINER.stop
-    # If no heal-over-time spells are active then attempt to tend using ;tendme
+    # If no heal-over-time spells are active then attempt to tend bleeders using ;tendme
     elsif bleeding? && !Script.running?('tendme') && !(DRSpells.active_spells['Devour'] || DRSpells.active_spells['Heal'] || DRSpells.active_spells['Regenerate'])
       echo('Checking for tendable bleeders...') if $debug_mode_ct
       if DRCH.has_tendable_bleeders?
