@@ -2097,6 +2097,7 @@ class SpellProcess
   end
 
   def blacklist_spells(game_state)
+    return unless @magic_gain_check > 0
     return if game_state.casting
 
     echo "Blacklisting non-training spells:" if $debug_mode_ct
@@ -2111,7 +2112,7 @@ class SpellProcess
     # blacklist offensive spell's skill by removing from @offensive_spells if threshold is exceeded
     # side effect is that any spells with cast_only_to_train not set will also get hit by blacklist (discord consensus 28/1/2025)
     if (@magic_no_gain_list[@magic_last_spell['skill']] > @magic_gain_check)
-      DRC.message("WARNING: Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
+      DRC.message("***STATUS*** Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
       @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
     end
 
@@ -4993,7 +4994,7 @@ class GameState
 
       # blacklist skill if it hasn't been gaining for a while
       if (@no_gain_list[weapon_skill] > @gain_check) then
-        DRC.message("WARNING: Suppressing #{weapon_skill} due to skill not training")
+        DRC.message("***STATUS*** Suppressing #{weapon_skill} due to skill not training")
         @weapons_to_train.delete(weapon_skill)
         # must suppress for offhand too - doesn't make sense to train in offhand if mainhand doesn't train + it breaks code
         @offhand_blacklist |= [weapon_skill]
@@ -5511,7 +5512,7 @@ class GameState
 
       # blacklist weapon if gain check failed
       unless @offhand_no_gain_list[last_offhand_skill] <= @offhand_gain_check
-        DRC.message("WARNING: Suppressing #{last_offhand_skill} in offhand due to skill not training")
+        DRC.message("***STATUS*** Suppressing #{last_offhand_skill} in offhand due to skill not training")
         @offhand_blacklist |= [@last_offhand_skill]
       end
       options -= @offhand_blacklist
