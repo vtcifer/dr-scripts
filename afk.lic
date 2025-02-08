@@ -15,7 +15,7 @@ def exit_game(message)
   fput('exit')
 end
 
-def idle?(line)
+def afk?(line)
   return true if line =~ /you have been idle too long/i
 
   if $_IDLETIMESTAMP_ && $_SCRIPTIDLETIMESTAMP_
@@ -47,7 +47,7 @@ loop do
   line = script.gets?
   pause 0.05 unless line
 
-  fput(%w[tdp time age].sample) if idle?(line)
+  fput(%w[tdp time age].sample) if afk?(line)
 
   justice_message_count += 1 if line =~ /^"Burn .+!  Burn .+!" .* giving you a wide berth/
   justice_message_count += 1 if line =~ /authorities will try to bring you in for endangering the public/
