@@ -2096,7 +2096,7 @@ class SpellProcess
   end
 
   def blacklist_spells(game_state)
-    return unless @magic_gain_check > 0 
+    return unless @magic_gain_check > 0
     return if game_state.casting
 
     echo "Blacklisting non-training spells:" if $debug_mode_ct
