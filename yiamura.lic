@@ -64,7 +64,7 @@ class Yiamura
   end
 
   def invoke_yiamura
-    case DRC.bput("observe my yiamura", /but otherwise fails to respond/, /As you make contact with a /)
+    case DRC.bput("invoke my yiamura", /but otherwise fails to respond/, /As you make contact with a /)
     when /As you make contact with a /
       UserVars.yiamura['last_invoked'] = Time.now
     end
