@@ -3,10 +3,7 @@
 =end
 
 custom_require.call(%w[common common-arcana common-travel common-moonmage equipmanager spellmonitor events])
-%w(play sanowret-crystal).each do |script|
-  stop_script(script) if Script.running?(script)
-  pause 0.5
-end
+
 class Astrology
   def initialize
     exit unless DRStats.moon_mage?

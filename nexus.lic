@@ -1,48 +1,64 @@
-=begin
-  Documentation:
-=end
 custom_require.call(%w[common common-travel])
+
 class Nexus
   def initialize
-    UserVars.nexus ||= {}
     arg_definitions = [
       [
-        { name: 'offering', options: %w[concentration health mana spirit fatigue], description: 'What will you sacrifice to power the nexus?' },
-        { name: 'room', display: 'Room id #', regex: /\d+/, description: 'What is the room id of the room you are making a sacrifice in?' }
-      ],
-      [
-        { name: 'list', regex: /list/i, description: 'List all the known nexus rooms' }
+        { name: 'resources', options: %w[concentration health mana spirit fatigue], description: 'Resource to sacrifice at nexus point' }
       ]
-
     ]
-    args = parse_args(arg_definitions)
-    if args.list
-      print_list
+
+    args = parse_args(arg_definitions, true)
+
+    unless args.resources
+      echo("No resource specified. Exiting.")
+      exit
+    end
+    UserVars.last_nexus ||= Time.now - 6.hours
+    settings = get_settings
+    hometown = settings.nexus_town || settings.fang_cove_override_town || settings.hometown
+    room = get_room(hometown)
+    unless room
+      echo("No nexus room found for #{hometown}. Exiting.")
+      exit
+    end
+    unless should_sacrifice?
+      echo("Not enough time has passed since last nexus sacrifice.")
+      echo("Exiting.")
+      exit
+    end
+    DRCT.walk_to(room)
+    sacrifice(args.resources) if args.resources && Map.current.id == room
+  end
+
+  def should_sacrifice?
+    unless Time.now - 6.hours > UserVars.last_nexus
+      return false
     else
-      sacrifice?(args.room, args.offering)
+      return true
     end
   end
 
-  def sacrifice?(room, offering)
-    DRCT.walk_to room
-    case DRC.bput("sacrifice nexus #{offering}", 'Before you can register it happening, a part of you is ripped violently away', 'Noble as that sacrifice would be', "You've recently sacrificed to empower a nexus", /^\[You don't have access to creating empowered nexus points/, '^But you have no attunement to sacrifice')
-    when 'Before you can register it happening, a part of you is ripped violently away'
-      UserVars.nexus['last_sacrifice_time'] = Time.now
-      true
-    when 'Noble as that sacrifice would be'
-      echo "#{room} is not a nexus!"
-      false
-    when "You've recently sacrificed to empower a nexus", "You don't have access to creating empowered nexus points", 'But you have no attunement to sacrifice'
-      false
+  def sacrifice(resources)
+    case DRC.bput("sacrifice nexus #{resources}",
+                  /^You reach out, sensing the latent nexus and attempt to forge a connection with it/,
+                  /^You've recently sacrificed to empower a nexus. You should wait a while before doing so again/,
+                  /^You sense the energies of the nexus here are still intact/)
+    when /You reach out, sensing the latent nexus and attempt to forge a connection with it/
+      UserVars.last_nexus = Time.now
+      return true
+    when /You've recently sacrificed to empower a nexus. You should wait a while before doing so again/
+      UserVars.last_nexus = Time.now + 1.hour
+      return false
+    when /You sense the energies of the nexus here are still intact/
+      UserVars.last_nexus = Time.now + 30.minutes
+      return false
     end
   end
 
-  def print_list
-    respond('-' * 70)
-    respond(' - Nexus Room Title'.ljust(48) + ' - Nexus Room ID'.rjust(5))
-    respond('-' * 70)
-    Map.list.find_all { |room| room.tags.include?('nexus') }
-       .each { |room| respond " - #{room.title.first.sub(/^\[/, '').sub(/\]$/, '').ljust(45)} - #{room.id.to_s.rjust(5)}\n" }
+  def get_room(town)
+    return get_data('town')[town]['nexus']['id']
   end
 end
+
 Nexus.new

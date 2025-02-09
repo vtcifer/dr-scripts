@@ -31,6 +31,9 @@ class SetupProcess
     echo("  @ignore_weapon_mindstate: #{@ignore_weapon_mindstate}") if $debug_mode_ct
     @gearsets = settings.gear_sets
 
+    @offhand_trainables = settings.combat_trainer_offhand_trainables
+    echo("  @offhand_trainables: #{@offhand_trainables}") if $debug_mode_ct
+
     validate_regalia(settings)
   end
 
@@ -163,17 +166,24 @@ class SetupProcess
   def determine_next_to_train(game_state, weapon_training, ending_ranged)
     return unless game_state.skill_done? || !weapon_training[game_state.weapon_skill] || ending_ranged
 
-    unless @ignore_weapon_mindstate
+    # skip_all_weapon_max_check is a kludge for a transient condition from blacklisting a skill with
+    # all remaining skills at 34
+    unless @ignore_weapon_mindstate || game_state.skip_all_weapon_max_check
       # check if all weapons are maxed exp to prevent rapid cycling
       if weapon_training.reject { |skill, _| DRSkill.getxp(skill) == 34 }.empty?
         echo 'all weapons locked, not switching' if $debug_mode_ct
         return
       end
     end
+    game_state.skip_all_weapon_max_check = false
 
     echo('new skill needed for training') if $debug_mode_ct
 
+    # reset counters for game_state.skill_done? after decision to switch to new skill
+    # as counts for previous weapon is now invalid
     game_state.reset_action_count
+    game_state.last_exp = -1
+    game_state.last_action_count = 0
 
     # If you're training with summoned moon weapons but you haven't cast the moonblade spell yet
     # then skip those weapon skills and train something else while we wait for moonblade spell to be cast.
@@ -184,7 +194,50 @@ class SetupProcess
 
     # Exclude current skill so that a new one is selected.
     new_weapon_skills = weapon_training.keys.reject { |skill| skill == game_state.weapon_skill }
-    new_weapon_skill = game_state.sort_by_rate_then_rank(new_weapon_skills, @priority_weapons).first
+
+    # optional & advanced feature:
+    # offhand_trainables is used to preference bows first, and aiming_trainables in mainhand last, to indirectly force
+    # aiming_trainables to be used in the offhand rather than pushing out the training for mainhand only weapons.
+    # It is only active when focus_threshold is active, after all the mindstates are off zero and have a drain buffer.
+    # There are three selection pools, one for bows, one for mainhand and one for aiming_trainables in mainhand, and skill is chosen
+    # preferentially in that order
+    # Each selection pool has a threshold that is needed to "break out" of a selection pool.  e.g. when all bow weapons are > 30
+    # the code will move onto the mainhand selection pool.
+    # 30 is a magic number and there are multiple factors determining what would be an optimal value, which may not practically
+    # exist for the wide range of CT use cases.
+
+    if @offhand_trainables && game_state.focus_threshold_active
+
+      # define what mainhand and offhand skills look like
+      mainhand_skills = $melee_skills + $thrown_skills + $martial_skills - game_state.aiming_trainables
+      offhand_skills = game_state.aiming_trainables + ['Offhand Weapon']
+
+      # create selection pools of bow/mainhand/offhand groupings
+      bow_selection_pool = new_weapon_skills.select { |skill| $aim_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
+      mainhand_selection_pool = new_weapon_skills.select { |skill| mainhand_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
+      offhand_selection_pool = new_weapon_skills.select { |skill| offhand_skills.include?(skill) && DRSkill.getxp(skill) < 30 }
+
+      echo("bow_selection_pool #{bow_selection_pool}") if $debug_mode_ct
+      echo("mainhand_selection_pool #{mainhand_selection_pool}") if $debug_mode_ct
+      echo("offhand_selection_pool #{offhand_selection_pool}") if $debug_mode_ct
+
+      if bow_selection_pool.length > 0
+        # choose a bow from this restricted pool (i.e. preferencing bow)
+        new_weapon_skill = game_state.sort_by_rate_then_rank(bow_selection_pool).first
+      elsif mainhand_selection_pool.length > 0
+        # choose a mainhander from this restricted pool (once bows are done)
+        new_weapon_skill = game_state.sort_by_rate_then_rank(mainhand_selection_pool).first
+      elsif offhand_selection_pool.length > 0
+        # choose an offhand weapon (wielded in the main hand) from this restricted pool
+        new_weapon_skill = game_state.sort_by_rate_then_rank(offhand_selection_pool).first
+      else
+        # use normal selection method as a default when everything is above 30 as maintenance
+        new_weapon_skill = game_state.sort_by_rate_then_rank(new_weapon_skills, @priority_weapons).first
+      end
+    else
+      # normal selection method
+      new_weapon_skill = game_state.sort_by_rate_then_rank(new_weapon_skills, @priority_weapons).first
+    end
 
     # Update weapon skill to train next, if a new one was chosen.
     # If you're training exactly one weapon then won't change.
@@ -417,7 +470,8 @@ class LootProcess
     @last_ritual = nil
     echo("  @last_ritual: #{@last_ritual}") if $debug_mode_ct
 
-    @necro_heal = thanatology['heal'] || false
+    # necro_heal requires CF and/or devour to make it a reality, so condition it based on that
+    @necro_heal = (thanatology['heal'] && (settings.necromancer_healing['Consumed Flesh'] || settings.necromancer_healing['Devour'])) || false
     echo("  @necro_heal: #{@necro_heal}") if $debug_mode_ct
 
     @necro_store = thanatology['store'] || false
@@ -742,7 +796,10 @@ class LootProcess
       echo "Severity to Wounds: #{game_state.wounds}" if $debug_mode_ct
       echo "wound_level_threshold: #{@wound_level_threshold}" if $debug_mode_ct
       unless game_state.wounds.empty?
-        if @wound_level_threshold <= game_state.wounds.keys.max
+        # if devour is active, stop a (second) consume from being requested - has previously caused problem downstream with consume
+        # flag set but no CF/devour cast to clear hence blocking looting (and potentially other necro_casting defs)
+        # the check for !devour will also disallow concurrent use of devour and CF but that is not currently supported in CT @ 2/2/2025
+        if @wound_level_threshold <= game_state.wounds.keys.max && !DRSpells.active_spells['Devour']
           do_necro_ritual(mob_noun, 'consume', game_state)
           return false
         end
@@ -772,8 +829,6 @@ class LootProcess
 
     if ritual.eql?('butcher')
       butcher_corpse(mob_noun, ritual, game_state)
-
-      @last_ritual = ritual
       echo "Last ritual performed: #{@last_ritual}" if $debug_mode_ct
       return
     end
@@ -819,8 +874,10 @@ class LootProcess
     @equipment_manager.stow_weapon(game_state.weapon_name)
 
     loop do
-      result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'])
-      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) }
+      result = DRC.bput("perform #{ritual} on #{mob_noun}", @rituals['butcher'], @rituals['failures'], @rituals['construct'])
+      game_state.construct(mob_noun) if result.include?(@rituals['construct'])
+      @last_ritual = 'butcher' if result.include?(@rituals['butcher'])
+      break if result.empty? || @rituals['failures'].any? { |msg| result.include?(msg) || result.include?(@rituals['construct']) }
 
       DRC.bput("drop my #{DRC.right_hand}", 'You drop', 'You discard', 'Please rephrase')
       break if @dissect_and_butcher && !@ritual_type.eql?('butcher')
@@ -899,7 +956,7 @@ class LootProcess
   end
 
   def arrange_mob(mob_noun, game_state)
-    return unless @skin
+    return unless @skin || @arrange_for_dissect
     return unless @arrange_count > 0
     return unless game_state.skinnable?(mob_noun)
     return if game_state.necro_casting?
@@ -993,7 +1050,11 @@ class LootProcess
       waitrt?
       fput("dissect")
       return false
-    when 'This ritual may only be performed on a corpse', 'A failed or completed ritual has rendered', 'You realize after a few seconds', 'prevents a meaningful dissection', 'Rituals do not work upon constructs'
+    when 'This ritual may only be performed on a corpse', 'A failed or completed ritual has rendered', 'You realize after a few seconds', 'prevents a meaningful dissection'
+      return false
+    when 'Rituals do not work upon constructs'
+      game_state.construct(mob_noun)
+      game_state.undissectable(mob_noun)
       return false
     when 'While likely a fascinating study', "That'd be a waste of time.", 'You do not yet possess the knowledge'
       game_state.undissectable(mob_noun)
@@ -1102,7 +1163,8 @@ class SafetyProcess
       echo("Couldn't tend bleeders after trying three times. Stopping hunt. Get healed!")
       $HUNTING_BUDDY.stop_hunting
       $COMBAT_TRAINER.stop
-    elsif bleeding? && !Script.running?('tendme')
+    # If no heal-over-time spells are active then attempt to tend bleeders using ;tendme
+    elsif bleeding? && !Script.running?('tendme') && !(DRSpells.active_spells['Devour'] || DRSpells.active_spells['Heal'] || DRSpells.active_spells['Regenerate'])
       echo('Checking for tendable bleeders...') if $debug_mode_ct
       if DRCH.has_tendable_bleeders?
         DRC.wait_for_script_to_complete('tendme')
@@ -1232,6 +1294,9 @@ class SpellProcess
     end
     echo("  @buff_spells: #{@buff_spells}") if $debug_mode_ct
 
+    @prioritize_offensive_spells = settings.prioritize_offensive_spells
+    echo("  @prioritize_offensive_spells: #{@prioritize_offensive_spells}") if $debug_mode_ct
+
     @offensive_spells = settings.offensive_spells
     echo("  @offensive_spells: #{@offensive_spells}") if $debug_mode_ct
 
@@ -1249,6 +1314,16 @@ class SpellProcess
 
     @offensive_spell_cycle = settings.offensive_spell_cycle
     echo("  @offensive_spell_cycle: #{@offensive_spell_cycle}") if $debug_mode_ct
+
+    @magic_last_spell = nil
+    @magic_last_exp = -1
+
+    @magic_gain_check = settings.combat_trainer_magic_gain_check
+    echo("  @magic_gain_check: #{@magic_gain_check}") if $debug_mode_ct
+
+    @magic_no_gain_list = Hash.new(0)
+    @offensive_spells.each { |spell| @magic_no_gain_list[spell['skill']] = 0 }
+    echo("  @magic_no_gain_list: #{@magic_no_gain_list}") if $debug_mode_ct
 
     @necromancer_healing = settings.necromancer_healing
     echo("  @necromancer_healing: #{@necromancer_healing}") if $debug_mode_ct
@@ -1414,10 +1489,13 @@ class SpellProcess
         DRCA.segue?(@settings.segue_spell_on_stop, @settings.segue_prep_on_stop)
       end
       DRCA.release_cyclics(@settings.cyclic_no_release)
-      if checkprep != 'None'
+
+      unless checkprep
         DRC.bput('release spell', 'You let your concentration lapse', "You aren't preparing a spell")
         DRC.bput('release mana', 'You release all', "You aren't harnessing any mana")
+        DRC.bput('release symb', 'You release the', "But you haven't prepared a symbiosis") if @symbiosis
       end
+
       if @tk_ammo
         waitrt?
         pause
@@ -1460,8 +1538,13 @@ class SpellProcess
     check_starlight(game_state)
     check_avtalia(game_state)
     check_buffs(game_state)
-    check_training(game_state)
-    check_offensive(game_state)
+    if @prioritize_offensive_spells
+      check_offensive(game_state)
+      check_training(game_state)
+    else
+      check_training(game_state)
+      check_offensive(game_state)
+    end
     check_current(game_state)
 
     false
@@ -1713,6 +1796,10 @@ class SpellProcess
     game_state.casting_cfb = false
     game_state.casting_cfw = false
     game_state.casting_cyclic = false
+
+    # once spell is cast, check on its mindstate performance and make decision if it needs blacklisting
+    blacklist_spells(game_state)
+
     if game_state.casting_sorcery
       game_state.casting_sorcery = false
       @equipment_manager.wield_weapon?(game_state.weapon_name, game_state.weapon_skill)
@@ -1773,6 +1860,11 @@ class SpellProcess
                      .select { |skill| Time.now > (@training_spells[skill]['cyclic'] ? @training_cyclic_timer : @training_cast_timer) }
                      .select { |skill| @training_spells[skill]['night'] ? UserVars.sun['night'] : true }
                      .select { |skill| @training_spells[skill]['day'] ? UserVars.sun['day'] : true }
+                     .select { |skill| @training_spells[skill]['bright_celestial_object'] ? DRCMM.bright_celestial_object? : true }
+                     .select { |skill| @training_spells[skill]['any_celestial_object'] ? DRCMM.any_celestial_object? : true }
+                     .select { |skill| @training_spells[skill]['no_bright_celestial_object'] ? !DRCMM.bright_celestial_object? : true }
+                     .select { |skill| @training_spells[skill]['no_celestial_object'] ? !DRCMM.any_celestial_object? : true }
+                     .select { |skill| @training_spells[skill]['must_be_true'] ? eval(@training_spells[skill]['must_be_true']) : true }
     DRC.message "all eligible training spells: #{needs_training}" if $debug_mode_ct
     needs_training = game_state.sort_by_rate_then_rank(needs_training).first
     return unless needs_training
@@ -1795,6 +1887,7 @@ class SpellProcess
       echo 'Preparing a sorcery spell, held items will be stowed to prevent item loss' if $debug_mode_ct
       game_state.casting_sorcery = true
     end
+
     prepare_spell(data, game_state)
     Flags.reset('ct-spelllost')
   end
@@ -1829,6 +1922,7 @@ class SpellProcess
                        .select { |_name, data| data['night'] ? UserVars.sun['night'] : true }
                        .select { |_name, data| data['day'] ? UserVars.sun['day'] : true }
                        .select { |_name, data| data['starlight_threshold'] ? enough_starlight?(game_state, data) : true }
+                       .select { |_name, data| data['must_be_true'] ? eval(data['must_be_true']) : true }
                        .reject { |_name, data| data['cyclic'] && DRSpells.active_spells.include?(data['name']) && !data['recast_every'] }
 
     name, data = recastable_buffs.find do |name, data|
@@ -2011,6 +2105,31 @@ class SpellProcess
     prepare_spell(data, game_state, true)
   end
 
+  def blacklist_spells(game_state)
+    return unless @magic_gain_check > 0
+    return if game_state.casting
+
+    echo "Blacklisting non-training spells:" if $debug_mode_ct
+
+    # if there has been no gain from last cast, and its been flagged with cast_only_to_train its a little black cross against the skill
+    if (DRSkill.getxp(@magic_last_spell['skill']) <= @magic_last_exp) && (@magic_last_spell['cast_only_to_train'] || @cast_only_to_train) && (DRSkill.getxp(@magic_last_spell['skill']) < 34)
+      @magic_no_gain_list[@magic_last_spell['skill']] += 1
+    else
+      @magic_no_gain_list[@magic_last_spell['skill']] = 0
+    end
+
+    # blacklist offensive spell's skill by removing from @offensive_spells if threshold is exceeded
+    # side effect is that any spells with cast_only_to_train not set will also get hit by blacklist (discord consensus 28/1/2025)
+    if (@magic_no_gain_list[@magic_last_spell['skill']] > @magic_gain_check)
+      DRC.message("***STATUS*** Suppressing #{@magic_last_spell['skill']} due to cast_only_to_train spells within that skill not gaining mindstates.")
+      @offensive_spells.reject! { |spell| spell['skill'] == @magic_last_spell['skill'] }
+    end
+
+    # clear magic_gain_check variables and wait for them to be set by the next applicable casting def (OST only at this point)
+    @magic_last_spell = nil
+    @magic_last_exp = -1
+  end
+
   def check_offensive(game_state)
     echo "Checking offensive spells:" if $debug_mode_ct
     return if game_state.casting
@@ -2032,6 +2151,11 @@ class SpellProcess
                    .select { |spell| spell['day'] ? UserVars.sun['day'] : true }
                    .select { |spell| spell['slivers'] ? (DRSpells.slivers || @tk_ammo) : true }
                    .select { |spell| spell['starlight_threshold'] ? enough_starlight?(game_state, spell) : true }
+                   .select { |spell| spell['bright_celestial_object'] ? DRCMM.bright_celestial_object? : true }
+                   .select { |spell| spell['any_celestial_object'] ? DRCMM.any_celestial_object? : true }
+                   .select { |spell| spell['no_bright_celestial_object'] ? !DRCMM.bright_celestial_object? : true }
+                   .select { |spell| spell['no_celestial_object'] ? !DRCMM.any_celestial_object? : true }
+                   .select { |spell| spell['must_be_true'] ? eval(spell['must_be_true']) : true }
     echo "Ready Spells: #{ready_spells.to_yaml}" if $debug_mode_ct
 
     data = if @offensive_spell_cycle.empty?
@@ -2057,6 +2181,11 @@ class SpellProcess
         return
       end
     else
+      # track last spell for magic_gain_check
+      @magic_last_spell = data
+      # if there is a spell to cast, snapshot the relevant skill's mindstate
+      @magic_last_exp = data.nil? ? -1 : DRSkill.getxp(data['skill'])
+
       prepare_spell(data, game_state)
     end
 
@@ -2346,6 +2475,9 @@ class AbilityProcess
     @pounce_on_cooldown = settings.pounce_on_cooldown
     echo("  @pounce_on_cooldown: #{@pounce_on_cooldown}") if $debug_mode_ct
 
+    @yiamura_exists = settings.combat_trainer_use_yiamura
+    echo("  @yiamura_exists: #{@yiamura_exists}") if $debug_mode_ct
+
     # Egg settings, for egg only
     @egg = settings.egg
     echo("  @egg: #{@egg}") if $debug_mode_ct
@@ -2368,15 +2500,30 @@ class AbilityProcess
 
   def execute(game_state)
     check_paladin_skills
+    check_yiamura if @yiamura_exists
     check_nonspell_buffs(game_state)
     check_battle_cries(game_state)
     use_warhorn_or_egg(game_state) unless @warhorn_or_egg.nil? || @warhorn_or_egg.empty?
-    game_state.stomp if @stomp_on_cooldown && game_state.npcs && Flags['war-stomp-ready']
+    game_state.stomp if DRStats.barbarian? && @stomp_on_cooldown && game_state.npcs && Flags['war-stomp-ready']
     game_state.pounce if DRStats.ranger? && @pounce_on_cooldown && game_state.npcs && Flags['pounce-ready']
     false
   end
 
   private
+
+  def check_yiamura
+    return unless @yiamura_exists
+    if UserVars.yiamura['last_raised']
+      return unless ((Time.now - UserVars.yiamura['last_raised'].to_i).to_i > 7200)
+    end
+
+    unless DRCI.exists?("yiamura")
+      echo "Yiamura is not present." if $debug_mode_ct
+      @yiamura_exists = false
+      return
+    end
+    DRC.wait_for_script_to_complete('yiamura', ['raise'])
+  end
 
   # Sets up our warhorn and/or egg use. Sets timers. Allows legacy use of warhorn: egg. Checks to
   # see if we're using a wearable warhorn or have it in a bag.
@@ -3671,6 +3818,10 @@ class AttackProcess
 
       weapon_name = game_state.wield_offhand_weapon(skill)
 
+      # get information for offhand_gain_check
+      game_state.offhand_last_exp = DRSkill.getxp(skill)
+      game_state.last_offhand_skill = skill
+
       actions = if skill.eql?('Tactics')
                   $tactics_actions
                 elsif @use_overrides_for_aiming_trainables
@@ -4156,7 +4307,7 @@ class GameState
   $staff_skills = ['Staves']
   $polearm_skills = ['Polearms']
   $melee_skills = $edged_skills + $blunt_skills + $staff_skills + $polearm_skills + ['Melee Mastery']
-  $thrown_skills = ['Heavy Thrown', 'Light Thrown']
+  $thrown_skills = ['Heavy Thrown', 'Light Thrown', 'Missile Mastery']
   $twohanded_skills = ['Twohanded Edged', 'Twohanded Blunt']
   $aim_skills = ['Bow', 'Slings', 'Crossbow']
   $ranged_skills = $thrown_skills + $aim_skills + ['Missile Mastery']
@@ -4167,10 +4318,10 @@ class GameState
                 :casting, :casting_cfb, :casting_cfw, :casting_nr, :casting_consume, :casting_cyclic, :casting_moonblade,
                 :casting_regalia, :casting_sorcery, :casting_weapon_buff, :charges, :charges_total,
                 :clean_up_step, :constructs, :cooldown_timers, :current_weapon_skill,
-                :currently_whirlwinding, :dance_queue, :dancing, :danger, :hide_on_cast,
+                :currently_whirlwinding, :dance_queue, :dancing, :danger, :focus_threshold_active, :hide_on_cast, :last_action_count, :last_exp, :last_offhand_skill,
                 :last_regalia_type, :last_weapon_skill, :loaded, :mob_died, :need_bundle,
-                :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
-                :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :starlight_values,
+                :no_loot, :no_skins, :no_stab_current_mob, :no_stab_mobs, :offhand_last_exp, :parrying, :prepare_cfb, :prepare_cfw, :prepare_nr,
+                :prepare_consume, :regalia_cancel, :reset_stance, :retreating, :skip_all_weapon_max_check, :starlight_values,
                 :swap_regalia_type, :target_weapon_skill, :use_charged_maneuvers,
                 :whirlwind_trainables, :wounds
 
@@ -4217,6 +4368,7 @@ class GameState
     @wounds = {}
     @blessed_room = false
     @charges_total = nil
+    @skip_all_weapon_max_check = false
 
     # private
     @clean_up_step = nil
@@ -4248,6 +4400,7 @@ class GameState
 
     @target_action_count = settings.combat_trainer_action_count
     echo("  @target_action_count: #{@target_action_count}") if $debug_mode_ct
+    @target_action_count_original = @target_action_count
 
     @dance_threshold = settings.dance_threshold.to_i
     echo("  @dance_threshold: #{@dance_threshold}") if $debug_mode_ct
@@ -4275,6 +4428,13 @@ class GameState
 
     @target_increment = settings.combat_trainer_target_increment
     echo("  @target_increment: #{@target_increment}") if $debug_mode_ct
+    @target_increment_original = @target_increment
+
+    @gain_check = settings.combat_trainer_gain_check
+    echo("  @gain_check: #{@gain_check}") if $debug_mode_ct
+
+    @offhand_gain_check = settings.combat_trainer_offhand_gain_check
+    echo("  @offhand_gain_check: #{@offhand_gain_check}") if $debug_mode_ct
 
     @strict_weapon_stance = settings.strict_weapon_stance
     echo("  @strict_weapon_stance: #{@strict_weapon_stance}") if $debug_mode_ct
@@ -4303,6 +4463,23 @@ class GameState
       $aim_skills << 'Brawling'
       $ranged_skills << 'Brawling'
     end
+
+    @last_exp = -1
+    @last_action_count = 0
+    @no_gain_list = Hash.new(0)
+    @weapons_to_train.each { |skill_name, _weapon_name| @no_gain_list[skill_name] = 0 }
+    echo("  @no_gain_list: #{@no_gain_list}") if $debug_mode_ct
+
+    @offhand_last_exp = -1
+    @last_offhand_skill = String.new
+    @offhand_blacklist = Array.new
+
+    @offhand_no_gain_list = Hash.new(0)
+    @aiming_trainables.each { |skill_name| @offhand_no_gain_list[skill_name] = 0 }
+    echo("  @offhand_no_gain_list: #{@offhand_no_gain_list}") if $debug_mode_ct
+    @focus_threshold_active = false
+    @focus_threshold = settings.combat_trainer_focus_threshold
+    echo("  @focus_threshold: #{@focus_threshold}") if $debug_mode_ct
 
     @use_stealth_attacks = settings.use_stealth_attacks
     echo("  @use_stealth_attacks: #{@use_stealth_attacks}") if $debug_mode_ct
@@ -4812,7 +4989,71 @@ class GameState
     current_exp = DRSkill.getxp(weapon_skill)
     echo("action count: #{@action_count} vs #{@target_action_count}") if $debug_mode_ct
     echo("skill exp: #{current_exp} vs #{@target_weapon_skill}") if $debug_mode_ct
+    echo("no_gain_list: #{@no_gain_list}") if $debug_mode_ct
+    echo("last_exp: #{@last_exp}") if $debug_mode_ct
+    echo("last_action_count: #{@last_action_count}") if $debug_mode_ct
 
+    # gain_check code: logic to account for a skill that is not gaining any MS at all
+    if (@gain_check > 0) && !weapon_skill.nil?
+      # only check for mindstate movement if there was actually some action in the last CT cycle
+      if (@action_count > @last_action_count) then
+        if (current_exp <= @last_exp) && (current_exp != 34) && (@weapons_to_train.size > 1) then
+          @no_gain_list[weapon_skill] += 1
+        else
+          @no_gain_list[weapon_skill] = 0
+        end
+      end
+      @last_exp = current_exp
+      @last_action_count = @action_count
+
+      # blacklist skill if it hasn't been gaining for a while
+      if (@no_gain_list[weapon_skill] > @gain_check) then
+        DRC.message("***STATUS*** Suppressing #{weapon_skill} due to skill not training")
+        @weapons_to_train.delete(weapon_skill)
+        # must suppress for offhand too - doesn't make sense to train in offhand if mainhand doesn't train + it breaks code
+        @offhand_blacklist |= [weapon_skill]
+
+        # kludge for rare transient condition in gain_check (most of mainhand skills blacklisted & remaining all at 34)
+        @skip_all_weapon_max_check = true if @weapons_to_train.all? { |skill_name, _weapon_name| DRSkill.getxp(skill_name) == 34 }
+
+        return true
+      end
+
+      # if weapon is at 34, don't black list but do (try to) switch weapons.
+      if current_exp == 34 then
+        return true
+      end
+    end
+
+    # focus_threshold code: if all the weapons being trained are above focus_threshold,
+    # @target_increment is set to 34 and @target_action_count to 1000.
+    # If at any time any weapon is at or below focus_threshold/2, parameters
+    # are restored to yaml values.  The divide by 2 is hysterisis to prevent this
+    # code from bouncing between the two states.  Focus_threshold has a min value of 10 to ensure
+    # a decent minimum hysterisis band.
+    # @focus_threshold is mapped to yaml value combat_trainer_focus_threshold
+    # Setting the yaml value turns this code on, it will remain dormant otherwise.
+    #
+    # The code will allow CT to focus on a single weapon once we know all weapons are draining;
+    # the focus means there is no weapon switching costs being incurred.
+
+    if (@focus_threshold > 1)
+      if !@focus_threshold_active && weapon_training.reject { |skill, _| DRSkill.getxp(skill) > @focus_threshold }.empty?
+        # all weapons above threshold
+        DRC.message("Focussing on single weapon")
+        @target_action_count = 1000
+        @target_increment = 34
+        @focus_threshold_active = true
+        return true
+      elsif @focus_threshold_active && weapon_training.any? { |skill, _| DRSkill.getxp(skill) < (@focus_threshold / 2) }
+        # any weapon below threshold/2
+        DRC.message("Spreading attention to all weapons")
+        @target_action_count = @target_action_count_original
+        @target_increment = @target_increment_original
+        @focus_threshold_active = false
+        return true
+      end
+    end
     @action_count >= @target_action_count || current_exp >= @target_weapon_skill
   end
 
@@ -5132,7 +5373,7 @@ class GameState
   def dual_load?
     @dual_load && weapon_skill == 'Bow' &&
       DRSkill.getrank('Bow') >= 201 && DRStats.agility >= 30 && DRStats.reflex >= 30 &&
-      (DRSpells.active_spells['See the Wind'] || DRStats.barbarian? || DRSpells.active_spells['Khri Steady'])
+      (DRSpells.active_spells['See the Wind'] || DRSpells.active_spells['Eagle'] || DRSpells.active_spells['Khri Steady'])
   end
 
   def prepare_summoned_weapon(weapon_already_summoned)
@@ -5263,6 +5504,37 @@ class GameState
     options -= weapon_training.select { |_skill, weapon| damaris_weapon_options.include?(weapon) }.keys # remove all weapons part of the same Damaris weapon group since they're the same item
     options -= weapon_training.select { |_skill, weapon| swappable_weapon?(weapon) }.keys # remove swappable weapons because they might be swapped into a two-handed state
     options -= @summoned_weapons.map { |info| info['name'] } # remove summoned weapons because they may not exist for offhand use
+
+    # offhand_gain_check code: add in some extra logic to stop training an offhand wielded
+    # weapon that is not gaining any MS at all.  Reduces the opportunity cost.
+    # blacklist on the offhand will not blacklist on mainhand by intent, as offhand has accuracy penalties
+    # the code will modify the options list if active
+    if @offhand_gain_check > 0
+
+      # if we know answer is empty list, go right to the end and bypass unwanted side effects
+      return nil if (options - @offhand_blacklist).empty?
+
+      # @offland_last_exp and @last_offhand_skill are picked up off in the attack_aimed code where the offhand commands are sent
+      offhand_current_exp = DRSkill.getxp(@last_offhand_skill)
+
+      # keep track of no gain occurences
+      if (offhand_current_exp <= @offhand_last_exp) && (offhand_current_exp != 34)
+        @offhand_no_gain_list[@last_offhand_skill] += 1
+      else
+        @offhand_no_gain_list[@last_offhand_skill] = 0
+      end
+
+      # blacklist weapon if gain check failed
+      unless @offhand_no_gain_list[last_offhand_skill] <= @offhand_gain_check
+        DRC.message("***STATUS*** Suppressing #{last_offhand_skill} in offhand due to skill not training")
+        @offhand_blacklist |= [@last_offhand_skill]
+      end
+      options -= @offhand_blacklist
+
+      # temporarily lock out skill if mindlocked
+      options -= [@last_offhand_skill] unless offhand_current_exp < 34
+    end
+
     echo "determine_aiming_skill::options: #{options}" if $debug_mode_ct
     sort_by_rate_then_rank(options).first
   end
