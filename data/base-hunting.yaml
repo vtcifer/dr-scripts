@@ -1074,10 +1074,14 @@ hunting_zones:
   # You'll need to remove bear's from the ignored_npcs: list otherwise it
   # just sit there not hunting.
   giant_bears:
-  - 15768
   - 15769
   - 15770
   - 15771
+  - 51570
+  - 51571
+  - 51572
+  - 51573
+  - 15768    # This room is last in the list even though it's the first room in the zone because `hunt` is broken in it.  Do not move it until hunt is fixed in the room.
   # same giant bears - premie only rooms but **you can escort in non-premie**
   # You'll need to remove bear's from the ignored_npcs: list otherwise it
   # just sit there not hunting.
