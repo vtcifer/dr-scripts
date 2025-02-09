@@ -2704,13 +2704,23 @@ class AbilityProcess
   end
 
   def check_nonspell_buffs(game_state)
-    @buffs.each do |action, cooldown|
+    @buffs.each do |action, blob|
       timer = game_state.cooldown_timers[action]
+
+      # break apart the blob into OG cooldown timer and the new optional conditional string using a delimiter that doesn't mess with Ruby code
+      blob_array = blob.to_s.split(/ &&& /)
+      cooldown = blob_array[0].to_i
+      conditional = blob_array[1][1..-2] # strip out the leading and following double quotes
+
       next unless !timer || (Time.now - timer).to_i > cooldown
 
       game_state.cooldown_timers[action] = Time.now
-      fput action
-      waitrt?
+
+      # do action if there is no conditional (OG behaviour), or do action if there is a conditional and it evaluated as true
+      if conditional.nil? || (conditional && eval(conditional))
+        fput action
+        waitrt?
+      end
     end
 
     @khri
