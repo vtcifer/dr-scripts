@@ -134,7 +134,7 @@ class MiningBuddy
 
     DRC.wait_for_script_to_complete('mine', @args.yiamura ? ['yiamura'] : nil)
     DRC.wait_for_script_to_complete('buff', ['mining-buddy']) unless @args.yiamura
-    
+
     true
   end
 end
