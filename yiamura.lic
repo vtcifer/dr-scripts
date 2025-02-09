@@ -6,7 +6,7 @@ class Yiamura
   def initialize
     arg_definitions = [
       [
-        { name: 'option', options: ['raise', 'observe', 'reset'], optional: true, description: 'Action to take.' }
+        { name: 'option', options: ['raise', 'point', 'observe', 'invoke', 'reset'], optional: true, description: 'Action to take.' }
       ]
     ]
 
@@ -15,13 +15,19 @@ class Yiamura
     UserVars.yiamura = {} unless UserVars.yiamura
     if args.option == "raise"
       raise_yiamura
+    elsif args.option == "point"
+      point_yiamura
     elsif args.option == "observe"
       observe_yiamura
+    elsif args.option == "invoke"
+      invoke_yiamura
     elsif args.option == "reset"
       UserVars.yiamura = {}
     else
       echo("Yiamura raised: #{UserVars.yiamura['last_raised']}")
+      echo("Yiamura pointed: #{UserVars.yiamura['last_pointed']}")
       echo("Yiamura last observed: #{UserVars.yiamura['last_observed'].nil? ? 'never' : UserVars.yiamura['last_observed']}")
+      echo("Yiamura last invoked: #{UserVars.yiamura['last_invoked'].nil? ? 'never' : UserVars.yiamura['last_invoked']}")
       echo("Yiamura last raised room: #{UserVars.yiamura['last_raised_room_id']}")
     end
   end
@@ -37,10 +43,30 @@ class Yiamura
     end
   end
 
+  def point_yiamura
+    case DRC.bput('point my yiamura', 'You grab the yiamura and direct it', 'You cannot use POINT until (.+)')
+    when /You cannot use POINT until (.+)/
+      if (date_match = $1.match(/\b\w{3} \w{3} +\d{1,2} \d{2}:\d{2}:\d{2} ET \d{4}\b/))
+        # Replace "ET" with "-0500" to indicate Eastern Time explicitly
+        formatted_date = date_match[0].gsub("ET", "-0500")
+        UserVars.yiamura['last_pointed'] = DateTime.strptime(formatted_date, "%a %b %e %H:%M:%S %z %Y").to_time - 7200 # 2 hour delay between points
+      end
+    else
+      UserVars.yiamura['last_pointed'] = Time.now
+    end
+  end
+
   def observe_yiamura
     case DRC.bput("observe my yiamura", /but nothing happens/, /Very quickly, your head reels as knowledge fills your mind/)
     when /Very quickly, your head reels as knowledge fills your mind/
       UserVars.yiamura['last_observed'] = Time.now
+    end
+  end
+
+  def invoke_yiamura
+    case DRC.bput("observe my yiamura", /but otherwise fails to respond/, /As you make contact with a /)
+    when /As you make contact with a /
+      UserVars.yiamura['last_invoked'] = Time.now
     end
   end
 end
