@@ -1485,9 +1485,11 @@ class SpellProcess
       end
       DRCA.release_cyclics(@settings.cyclic_no_release)
 
-      DRC.bput('release spell', 'You let your concentration lapse', "You aren't preparing a spell")
-      DRC.bput('release mana', 'You release all', "You aren't harnessing any mana")
-      DRC.bput('release symb', 'You release the', "But you haven't prepared a symbiosis") if @symbiosis
+      unless checkprep
+        DRC.bput('release spell', 'You let your concentration lapse', "You aren't preparing a spell")
+        DRC.bput('release mana', 'You release all', "You aren't harnessing any mana")
+        DRC.bput('release symb', 'You release the', "But you haven't prepared a symbiosis") if @symbiosis
+      end
 
       if @tk_ammo
         waitrt?
