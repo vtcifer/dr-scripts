@@ -1861,6 +1861,7 @@ class SpellProcess
                      .select { |skill| @training_spells[skill]['any_celestial_object'] ? DRCMM.any_celestial_object? : true }
                      .select { |skill| @training_spells[skill]['no_bright_celestial_object'] ? !DRCMM.bright_celestial_object? : true }
                      .select { |skill| @training_spells[skill]['no_celestial_object'] ? !DRCMM.any_celestial_object? : true }
+                     .select { |skill| @training_spells[skill]['must_be_true'] ? eval(@training_spells[skill]['must_be_true']) : true }
     DRC.message "all eligible training spells: #{needs_training}" if $debug_mode_ct
     needs_training = game_state.sort_by_rate_then_rank(needs_training).first
     return unless needs_training
@@ -1918,6 +1919,7 @@ class SpellProcess
                        .select { |_name, data| data['night'] ? UserVars.sun['night'] : true }
                        .select { |_name, data| data['day'] ? UserVars.sun['day'] : true }
                        .select { |_name, data| data['starlight_threshold'] ? enough_starlight?(game_state, data) : true }
+                       .select { |_name, data| data['must_be_true'] ? eval(data['must_be_true']) : true }
                        .reject { |_name, data| data['cyclic'] && DRSpells.active_spells.include?(data['name']) && !data['recast_every'] }
 
     name, data = recastable_buffs.find do |name, data|
@@ -2150,6 +2152,7 @@ class SpellProcess
                    .select { |spell| spell['any_celestial_object'] ? DRCMM.any_celestial_object? : true }
                    .select { |spell| spell['no_bright_celestial_object'] ? !DRCMM.bright_celestial_object? : true }
                    .select { |spell| spell['no_celestial_object'] ? !DRCMM.any_celestial_object? : true }
+                   .select { |spell| spell['must_be_true'] ? eval(spell['must_be_true']) : true }
     echo "Ready Spells: #{ready_spells.to_yaml}" if $debug_mode_ct
 
     data = if @offensive_spell_cycle.empty?
