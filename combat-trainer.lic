@@ -4628,6 +4628,20 @@ class GameState
 
     @undead_mode = settings.undead || false
     echo("  @undead_mode: #{@undead_mode}") if $debug_mode_ct
+
+    extract = get_data('mobs')
+
+    @import_constructs_list = settings.import_constructs_list || false
+    echo("  @import_constructs_list: #{@import_constructs_list}") if $debug_mode_ct
+
+    @import_undeads_list = settings.import_undeads_list || false
+    echo("  @import_undeads_list: #{@import_undeads_list}") if $debug_mode_ct
+
+    @constructs = @import_constructs_list ? extract['constructs'] : []
+    echo("  @constructs: #{@constructs}") if $debug_mode_ct
+
+    @undeads = @import_undeads_list ? extract['undeads'] : []
+    echo("  @undeads: #{@undeads}") if $debug_mode_ct
   end
 
   def next_clean_up_step
@@ -5098,12 +5112,23 @@ class GameState
     @no_dissect.push(mob_noun)
   end
 
-  def construct?(mob_noun)
-    @constructs.include?(mob_noun)
+  def construct?(mob_noun = nil)
+    return @constructs.include?(mob_noun) if mob_noun
+    # for use by must_be_true without arg -> find the first npc that's not on ignore list
+    @constructs.include?(npcs.first)
   end
 
   def construct(mob_noun)
     @constructs.push(mob_noun)
+  end
+
+  def undead?(mob_noun = nil)
+    return @undeads.include?(mob_noun) if mob_noun
+    @undeads.include?(npcs.first)
+  end
+
+  def undead(mob_noun)
+    @undeads.push(mob_noun)
   end
 
   def stabbable?(mob_noun)
