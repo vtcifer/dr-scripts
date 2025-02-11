@@ -2708,7 +2708,7 @@ class AbilityProcess
       timer = game_state.cooldown_timers[action]
 
       # break apart the blob into OG cooldown timer and the new optional conditional string using a fake && as a delimiter
-      blob_array = blob.to_s.split(/ && /,2)
+      blob_array = blob.to_s.split(/ && /, 2)
       cooldown = blob_array[0].to_i
       conditional = blob_array[1][1..-2] # strip out the leading and following double quotes
 
