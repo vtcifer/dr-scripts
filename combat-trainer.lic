@@ -4643,7 +4643,7 @@ class GameState
     @undead_mode = settings.undead || false
     echo("  @undead_mode: #{@undead_mode}") if $debug_mode_ct
 
-    @innocence_mode = settings.innocence(false)
+    @innocence_mode = settings.innocence || false
     echo("  @innocence_mode: #{@innocence_mode}") if $debug_mode_ct
 
     extract = get_data('mobs')
