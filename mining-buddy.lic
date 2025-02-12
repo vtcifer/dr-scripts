@@ -6,6 +6,12 @@ custom_require.call(%w[common common-items common-crafting common-money common-t
 
 class MiningBuddy
   def initialize
+    arg_definitions = [
+      [
+        { name: 'yiamura', regex: /yiamura/i, optional: true, description: 'Mine a single room using a yiamura gatherer' },
+      ]
+    ]
+    @args = parse_args(arg_definitions)
     settings = get_settings
     @area_list = get_data('mining').mining_buddy_rooms
     @forging_belt = settings.forging_belt
@@ -24,6 +30,8 @@ class MiningBuddy
     @mine_repair_own_tools = settings.mine_repair_own_tools
     DRC.message("#{@areas}:#{@vein_list}") if UserVars.mining_debug
     Flags.add('proper-repair', 'Your excellent training in the ways of tool repair')
+
+    exit if @args.yiamura && Time.now() <= UserVars.yiamura['last_pointed'] + 7200
 
     # checks yaml settings against tools
     # corrects settings when tongs are wrongly set as adjustable, and/or when implement is tongs.
@@ -46,9 +54,11 @@ class MiningBuddy
         DRCC.stow_crafting_item('packet', @bag, @forging_belt)
       end
     end
-    check_repair
-    DRC.wait_for_script_to_complete('buff', ['mining-buddy'])
-    DRC.bput('speculate luck', '^You focus your mind on the world around you', '^You are already focusing on the world around you.', '^Your pattern-matching skills are still exhausted') if DRStats.trader? && DRStats.circle >= 65
+    unless @args.yiamura
+      check_repair
+      DRC.wait_for_script_to_complete('buff', ['mining-buddy'])
+      DRC.bput('speculate luck', '^You focus your mind on the world around you', '^You are already focusing on the world around you.', '^Your pattern-matching skills are still exhausted') if DRStats.trader? && DRStats.circle >= 65
+    end
     @areas.each { |area_name| mine_rooms(@area_list[area_name]) }
   end
 
@@ -91,11 +101,12 @@ class MiningBuddy
       DRC.wait_for_script_to_complete('safe-room') if bleeding?
       next unless mine?(room)
 
-      check_repair
+      check_repair unless @args.yiamura
     end
   end
 
   def mine?(room)
+    exit if @args.yiamura && Time.now() <= UserVars.yiamura['last_pointed'] + 7200
     waitrt?
     DRCT.walk_to(room)
     unless DRRoom.pcs.empty?
@@ -119,11 +130,11 @@ class MiningBuddy
                           .map(&:downcase)
                           .any? { |vein| @vein_list.map(&:downcase).include?(vein) }
     end
-
     waitrt?
 
-    DRC.wait_for_script_to_complete('mine')
-    DRC.wait_for_script_to_complete('buff', ['mining-buddy'])
+    DRC.wait_for_script_to_complete('mine', @args.yiamura ? ['yiamura'] : nil)
+    DRC.wait_for_script_to_complete('buff', ['mining-buddy']) unless @args.yiamura
+
     true
   end
 end

@@ -1231,6 +1231,9 @@ mining_attempt_timer: 0
 # If you have basic and/or advanced tool repair blacksmithing techniques, this allows you to repair mining tool in place, rather than returning
 # to town whenever a repair is necessary. Not recommended for use without those techs, requires wire brush and flask of oil.
 mine_repair_own_tools: false
+# If mining with a yiamura, what's the minimum acceptable level of resources the room should have before using it? Higher is more gathered 
+# material and more EXP, but may take longer to find a suitable room. Valid values are 0-5.
+mining_yiamura_resource_minimum: 4
 
 ## Locksmithing Settings ##
 # https://elanthipedia.play.net/Lich_script_repository#locksmithing

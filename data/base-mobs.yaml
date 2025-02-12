@@ -1,0 +1,13 @@
+---
+undeads:
+- skeleton
+- zombie
+- ghoul
+- lich
+- wight
+- nightcrawler
+
+constructs:
+- mouse
+- origami
+- gargoyle

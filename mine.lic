@@ -6,6 +6,12 @@ custom_require.call(%w[common common-crafting common-items events common-travel]
 
 class Mine
   def initialize
+    arg_definitions = [
+      [
+        { name: 'yiamura', regex: /yiamura/i, optional: true, description: 'Mine a single room using a yiamura gatherer' },
+      ]
+    ]
+    @args = parse_args(arg_definitions)
     Flags.add('mine-danger', 'The ground rumbles ominously', 'A bitter smell seeps into the air', 'The floor shudders briefly', 'continued mining .* hazardous', 'slightly dangerous because the ground')
     Flags.add('mine-exit', 'The entire wall of rock fractures at your blow and comes crashing down atop you')
     Flags.add('mine-pinned', 'You seem to be pinned in place', 'You finally manage to clear away enough rubble')
@@ -26,23 +32,42 @@ class Mine
     @bag = settings.crafting_container
     @bag_items = settings.crafting_items_in_container
     @belt = settings.forging_belt
+    @yiamura_resource_minimum = settings.mining_yiamura_resource_minimum + 1
+    Flags.add('yiamura-done', 'stills its flailing as it observes the area') if @args.yiamura
+    Flags.add('yiamura-gone', 'You sense the tether binding your') if @args.yiamura
+    @forage_item = settings.forage_item
     DRCI.stow_hands
     unless settings.adjustable_tongs && @mining_implement.include?('tongs') && DRCC.get_adjust_tongs?('reset shovel', @bag, @bag_items, @belt)
       @mining_implement.sub!(/.* tongs/, "shovel")
     end
-    DRCC.get_crafting_item(@mining_implement, @bag, @bag_items, @belt)
 
-    DRC.wait_for_script_to_complete('buff', ['mining'])
-    if DRStats.trader? && DRStats.circle >= 65
-      DRC.bput('speculate luck',
-               /^You focus your mind on the world around you/,
-               /^You are already focusing on the world around you/,
-               /^Your pattern-matching skills are still exhausted/,
-               /^The world already seems less chaotic and capricious than normal/)
+    unless @args.yiamura
+      DRCC.get_crafting_item(@mining_implement, @bag, @bag_items, @belt)
+
+      DRC.wait_for_script_to_complete('buff', ['mining'])
+      if DRStats.trader? && DRStats.circle >= 65
+        DRC.bput('speculate luck',
+                 /^You focus your mind on the world around you/,
+                 /^You are already focusing on the world around you/,
+                 /^Your pattern-matching skills are still exhausted/,
+                 /^The world already seems less chaotic and capricious than normal/)
+      end
     end
     DRC.bput('prospect', 'roundtime', 'You carefully scan')
 
-    @multiplier = @mining_implement =~ /pick/i ? 4 : 5
+    @multiplier = case
+                  when @args.yiamura
+                    20
+                  when @mining_implement =~ /pick/i
+                    4
+                  else
+                    5
+                  end
+
+    if @args.yiamura
+      exit if resource_level < @yiamura_resource_minimum
+      DRC.wait_for_script_to_complete('yiamura', ['point'])
+    end
 
     mine(@multiplier * resource_level)
     while DRC.bput('prospect careful', 'roundtime', 'You carefully scan')
@@ -54,7 +79,7 @@ class Mine
       mine(@multiplier * resource_level)
     end
 
-    DRCC.stow_crafting_item(@mining_implement, @bag, @belt)
+    DRCC.stow_crafting_item(@mining_implement, @bag, @belt) unless @args.yiamura
   end
 
   def resource_level
@@ -125,7 +150,12 @@ class Mine
       return
     end
 
-    DRC.bput('mine', 'roundtime')
+    if @args.yiamura
+      DRC.retreat
+      DRC.collect(@forage_item)
+    else
+      DRC.bput('mine', 'roundtime')
+    end
     pause @mining_attempt_timer
     waitrt?
 
@@ -145,6 +175,16 @@ class Mine
       end
     end
 
+    if Flags['yiamura-gone']
+      # Our 10 minutes are up
+      exit
+    elsif Flags['yiamura-done']
+      # We need to prospect again.
+      Flags.reset('yiamura-done')
+      count = 0
+      return
+    end
+
     mine(count - 1)
   end
 
@@ -158,6 +198,8 @@ before_dying do
   Flags.delete('mine-exit')
   Flags.delete('resource-level')
   Flags.delete('mine-pinned')
+  Flags.delete('yiamura-done')
+  Flags.delete('yiamura-gone')
 end
 
 Mine.new
