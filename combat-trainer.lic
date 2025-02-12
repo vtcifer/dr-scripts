@@ -4050,7 +4050,7 @@ class AttackProcess
       when 'You must be closer', 'There is nothing else', 'What are you trying'
         game_state.engage
       end
-    else unless game_state.retreating?
+    elsif !game_state.retreating?
       pause 1
     end
   end
