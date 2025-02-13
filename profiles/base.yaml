@@ -2232,6 +2232,12 @@ play_no_use_scripts:
   - tinker
   - workorders
 
+play_no_use_rooms: # Don't try to play instrument in these rooms
+  - 1900                                          # Crossing bank teller - included with regex below but shown for example
+  - Knife Clan, Triage                            # Dokt - silenced room
+  - !ruby/regexp '/^(?:First )?Provincial Bank,/' # Crossing Bank - mapped, but 1 regex- -> 3 rooms
+  - !ruby/regexp '/Carousel (?:Booth|Chamber)$/'  # Vaults - unmapped silenced / nomagic
+
 # https://elanthipedia.play.net/Lich_script_development#sorter
 sorter:
   width: 0
