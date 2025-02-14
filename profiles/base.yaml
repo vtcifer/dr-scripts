@@ -2179,11 +2179,12 @@ sanowret_no_use_scripts: # Don't try to use crystal while these scripts are acti
   - tinker
   - workorders
 
-sanowret_no_use_rooms: # Don't try to use crystal while in these rooms.
+sanowret_no_use_rooms: # Don't try to use crystal while in these rooms. This setting is also used for scholarship tomes currently. 
   - Carousel Chamber     # Room with vault
   - Carousel Booth       # Room just before vault
   - 1900                 # You can specify room ids, too
-
+  - Knife Clan, Triage
+  
 walkingastro_no_use_scripts:
   - alchemy
   - astrology
