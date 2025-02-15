@@ -1297,7 +1297,11 @@ class SpellProcess
     @prioritize_offensive_spells = settings.prioritize_offensive_spells
     echo("  @prioritize_offensive_spells: #{@prioritize_offensive_spells}") if $debug_mode_ct
 
-    @offensive_spells = settings.offensive_spells
+    if settings.OST_use_waggle && settings.waggle_sets[settings.OST_use_waggle]
+      @offensive_spells = OST_waggle_transform(settings.waggle_sets[settings.OST_use_waggle])
+    else
+      @offensive_spells = settings.offensive_spells
+    end
     echo("  @offensive_spells: #{@offensive_spells}") if $debug_mode_ct
 
     @training_spells = settings.combat_spell_training
@@ -2103,6 +2107,19 @@ class SpellProcess
     game_state.casting_consume = true
     game_state.prepare_consume = false
     prepare_spell(data, game_state, true)
+  end
+
+  # take waggles (hash of hashes) and transform them transparently into a format (array of hashes) that offensive_spells understands
+  def OST_waggle_transform(waggles)
+    # prep the transform target
+    offensive_spells = []
+    offensive_spell = {}
+    # unwrap each of the waggle's hash and massage them into the OST format
+    waggles.each { |name, spell_data|
+      offensive_spell = {'name' => name}.merge(spell_data)
+      offensive_spells << offensive_spell
+    }
+    return offensive_spells
   end
 
   def blacklist_spells(game_state)
