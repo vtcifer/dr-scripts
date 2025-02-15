@@ -2116,7 +2116,7 @@ class SpellProcess
     offensive_spell = {}
     # unwrap each of the waggle's hash and massage them into the OST format
     waggles.each { |name, spell_data|
-      offensive_spell = {'name' => name}.merge(spell_data)
+      offensive_spell = { 'name' => name }.merge(spell_data)
       offensive_spells << offensive_spell
     }
     return offensive_spells
