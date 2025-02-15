@@ -2188,15 +2188,20 @@ sanowret_no_use_rooms: # Don't try to use crystal while in these rooms. This set
 walkingastro_no_use_scripts:
   - alchemy
   - astrology
+  - athletics
+  - attunement
   - bescort
+  - burgle
   - buff
   - carve
   - combat-trainer
   - craft
   - enchant
+  - faskinner
   - first-aid
   - forge
   - mech-lore
+  - outdoorsmanship
   - performance
   - pick
   - remedy
