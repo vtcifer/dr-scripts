@@ -381,8 +381,7 @@ class SigilHarvest
 
     # blank scrolls come in a stack of 25, divide the difference by 25 and round to determine the number of times we need to order. (Changed to ROUND instead of CEIL. No longer tries to always meet or exceed value but instead gets close to target quantity.)
     num_to_order = target_scrolls - num_scrolls
-    num_to_order = num_to_order.to_f / 25
-    num_to_order = num_to_order.ceil
+    num_to_order = (num_to_order.to_f / 25).ceil
 
     # calculate the amount of money needed
     coppers_needed = num_to_order * scroll_price
