@@ -8,6 +8,7 @@ class Play
   def initialize
     settings = get_settings
     @no_play_scripts = settings.play_no_use_scripts
+    @no_use_rooms = settings.play_no_use_rooms
     unless UserVars.song
       DRC.wait_for_script_to_complete('performance', ['checksong'])
     end
@@ -25,7 +26,7 @@ class Play
   end
 
   def can_play?
-    @no_play_scripts.none? { |script| Script.running?(script) }
+    @no_play_scripts.none? { |script| Script.running?(script) } && !(@no_use_rooms.any? { |room| room === DRRoom.title.to_s()[2..-3] || room == Room.current.id })
   end
 
   def should_play?

@@ -55,6 +55,15 @@ unless settings.private_textsubs.empty?
   end
 end
 
+### TEACHING CLASSES - MikeLC 12/1/2023 ###
+TextSubs.add('class on extremely advanced(.*)compared to', 'teaching a class on extremely advanced\1more than 130% of')
+TextSubs.add('class on advanced(.*)compared to', 'teaching a class on advanced\1around 120-130% of')
+TextSubs.add('class on intermediate(.*)compared to', 'teaching a class on intermediate\1around 110-120% of')
+TextSubs.add('class on basic(.*)compared to', 'teaching a class on basic\1around 100-110% of')
+TextSubs.add('class on simplistic(.*)compared to', 'teaching a class on simplistic\1around 90-100% of')
+TextSubs.add('class on extremely simplistic(.*)compared to', 'teaching a class on extremely simplistic\1less than 90% of')
+### End of Teaching Classes Subs ###
+
 # Necromancer Butchery
 if DRStats.necromancer?
   TextSubs.add('manage to extract a perfect', 'manage to extract a perfect (10/10)')
