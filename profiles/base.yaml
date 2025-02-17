@@ -2179,23 +2179,29 @@ sanowret_no_use_scripts: # Don't try to use crystal while these scripts are acti
   - tinker
   - workorders
 
-sanowret_no_use_rooms: # Don't try to use crystal while in these rooms.
+sanowret_no_use_rooms: # Don't try to use crystal while in these rooms. This setting is also used for scholarship tomes currently. 
   - Carousel Chamber     # Room with vault
   - Carousel Booth       # Room just before vault
   - 1900                 # You can specify room ids, too
-
+  - Knife Clan, Triage
+  
 walkingastro_no_use_scripts:
   - alchemy
   - astrology
+  - athletics
+  - attunement
   - bescort
+  - burgle
   - buff
   - carve
   - combat-trainer
   - craft
   - enchant
+  - faskinner
   - first-aid
   - forge
   - mech-lore
+  - outdoorsmanship
   - performance
   - pick
   - remedy
@@ -2231,6 +2237,12 @@ play_no_use_scripts:
   - theurgy
   - tinker
   - workorders
+
+play_no_use_rooms: # Don't try to play instrument in these rooms
+  - 1900                                          # Crossing bank teller - included with regex below but shown for example
+  - Knife Clan, Triage                            # Dokt - silenced room
+  - !ruby/regexp '/^(?:First )?Provincial Bank,/' # Crossing Bank - mapped, but 1 regex- -> 3 rooms
+  - !ruby/regexp '/Carousel (?:Booth|Chamber)$/'  # Vaults - unmapped silenced / nomagic
 
 # https://elanthipedia.play.net/Lich_script_development#sorter
 sorter:
