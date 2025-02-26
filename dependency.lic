@@ -10,7 +10,7 @@ require 'ostruct'
 require 'digest/sha1'
 require 'monitor'
 
-$DEPENDENCY_VERSION = '2.0.6'
+$DEPENDENCY_VERSION = '2.0.7'
 $MIN_RUBY_VERSION = '3.2.2'
 
 if defined?(Lich::Common) && defined?(DRInfomon) # testing for minimum 5.11.0
