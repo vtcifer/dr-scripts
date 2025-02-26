@@ -740,19 +740,19 @@ observe_success_messages:
 - you still learned more
 
 observe_failed_messages:
- - You are unable to make use of this latest observation
- - You have not pondered your last observation sufficiently
- - You see nothing regarding the future
+  - You are unable to make use of this latest observation
+  - You have not pondered your last observation sufficiently
+  - You see nothing regarding the future
 
 observe_full_messages:
- - You believe you've learned
- - Too many futures
+  - You believe you've learned
+  - Too many futures
     
 observe_partial_messages:
- - You learned something useful
- - Although you were nearly
+  - You learned something useful
+  - Although you were nearly
 
 observe_injured_messages:
- - The pain is too much
- - Your vision is too fuzzy
+  - The pain is too much
+  - Your vision is too fuzzy
 
