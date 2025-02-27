@@ -1999,13 +1999,13 @@ walkingastro:
   startup_delay: 
   use_tools: 
   use_partial_pools: 
-# Setting walkingastro_predict_regardless_of_mindstate to true is meant to allow 
-# passive tool bonding via more frequent predictions, so also set 
-# walkingastro_use_partial_pools to false to maximize the chance of a bond if using it for that purpose.
-# Recommended to add Destiny Cipher to the walkingastro waggle set for this purpose as well.
+  # Setting walkingastro_predict_regardless_of_mindstate to true is meant to allow 
+  # passive tool bonding via more frequent predictions, so also set 
+  # walkingastro_use_partial_pools to false to maximize the chance of a bond if using it for that purpose.
+  # Recommended to add Destiny Cipher to the walkingastro waggle set for this purpose as well.
   predict_regardless_of_mindstate: 
-# Set to true if you want to analyze your divination tool after every prediction.
-# Only useful for logging prediction tracking, does not add any in-game benefit.
+  # Set to true if you want to analyze your divination tool after every prediction.
+  # Only useful for logging prediction tracking, does not add any in-game benefit.
   analyze_divination_tool: 
 
 learned_column_count: 2
