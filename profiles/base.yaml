@@ -1982,7 +1982,7 @@ astrology_training:
   - attunement
   #- events
 #Allows user to force visions even if divination_tool is set rather than having to delete the settings.
-#Useful if another script makes use of the tool settings and still wants to them.
+#Useful if another script makes use of the tool settings and still wants to use them with that script.
 astrology_force_visions: 
 
 astrology_prediction_skills:
