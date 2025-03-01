@@ -1098,6 +1098,10 @@ hunting_zones:
   - 15881
   - 15882
   - 15883
+  - 51602
+  - 51603
+  - 51604
+  - 51605
   # same onyx gargoyles as above - premie only rooms but **you can escort in non-premie**
   onyx_gargoyles_glade:
   - 16523
@@ -1989,6 +1993,12 @@ hunting_zones:
   - 8598
   - 8595
   - 8593
+  # https://elanthipedia.play.net/Moltspun_boggle                          55-80
+  moltspun_boggles:
+  - 51606
+  - 51607
+  - 51608
+  - 51609
   # https://elanthipedia.play.net/Wild_boar                                18-42
   # https://elanthipedia.play.net/Boobrie                                  50-75
   boar_boobrie_riverhaven:
