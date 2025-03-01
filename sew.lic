@@ -291,6 +291,7 @@ class Sew
       when 'You untie and discard'
         command = 'knit my yarn with my knitting needles'
       when /^Roundtime/, /^You realize that cannot be repaired, and stop/
+        waitrt?
         finish if Flags['sew-done']
         swap_tool(@home_tool) unless @home_tool.nil?
         command = @home_command.nil? ? command : @home_command
