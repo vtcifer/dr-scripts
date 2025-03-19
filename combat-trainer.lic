@@ -2868,21 +2868,16 @@ class ManipulateProcess
     DRC.bput('manipulate stop all', /^You relax your will/, /^But you aren't manipulating anything/)
 
     manipulate_count = 0
-    npc_occurrences = Hash.new(0)
 
     @filtered_npcs.each do |npc|
       next if game_state.construct?(npc)
       break if manipulate_count >= @threshold
 
-      index = npc_occurrences[npc]
-      ordinal_string = $ORDINALS[index]
-
-      case DRC.bput("manipulate friendship #{ordinal_string} #{npc}", 'You\'re already manipulating', 'beyond your ken', 'You attempt to empathically manipulate', 'You strain', 'does not seem to have a life essence', 'Manipulate what')
+      case DRC.bput("manipulate friendship #{npc}", 'You\'re already manipulating', 'beyond your ken', 'You attempt to empathically manipulate', 'You strain', 'does not seem to have a life essence', 'Manipulate what')
       when 'does not seem to have a life essence' then
         game_state.construct(npc)
       else
         manipulate_count += 1
-        npc_occurrences[npc] += 1
       end
     end
 
