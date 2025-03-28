@@ -33,8 +33,8 @@ class Stabbity
     @preferred_weapon = @settings.stabbity['weapons']['preferred']
     @alternate_weapon = @settings.stabbity['weapons']['alternate']
     @thrown_weapon = @settings.stabbity['weapons']['thrown']
-    @alternate_weapon_npcs = @settings.stabbity['use_alternate_on']
-    @thrown_weapon_npcs = @settings.stabbity['use_thrown_on']
+    @alternate_weapon_npcs = @settings.stabbity['use_alternate_on'] || []
+    @thrown_weapon_npcs = @settings.stabbity['use_thrown_on'] || []
     @khri_eliminate = @settings.stabbity['eliminate'] || false
     @noloot = args.mode == 'arena' || args.noloot ? true : false
     @mode = args.mode
@@ -50,7 +50,14 @@ class Stabbity
     use_weapon('preferred')
     exit if equip_mode?
 
-    DRCA.do_buffs(@settings, 'stabbity')
+    if Script.running?('wand-watcher')
+      DRC.message("*** Stopping passive wand-watcher script, will run it as needed in between fights ***")
+      stop_script('wand-watcher')
+    end
+
+    check_buffs
+    check_wands
+
     DRC.hide?
     combat_loop
   end
@@ -110,7 +117,8 @@ class Stabbity
         waitrt?
         loot_mob unless @noloot
         use_weapon('preferred')
-        DRCA.do_buffs(@settings, 'stabbity')
+        check_buffs
+        check_wands
         DRC.hide?
       else
         echo("*** No targets ***") if @debug
@@ -160,6 +168,7 @@ class Stabbity
         # Some enemies are resistant to slice or impact damage.
         # If we detect that your current weapon is ineffective,
         # we'll switch to the other weapon in hopes it does better.
+        echo("*** Not hitting hard enough, switching weapon ***") if @debug
         case @current_weapon_type
         when 'preferred'
           @alternate_weapon_npcs.push(@target)
@@ -186,8 +195,9 @@ class Stabbity
 
   def kill_thrown
     DRC.fix_standing
+
     attack_verb = thrown_attack_verb
-    retrieve_verb = thrown_retrieve_verb
+
     while @npc_is_alive
       result = DRC.bput(attack_verb,
                         /You'll need to stand up first/,
@@ -203,15 +213,43 @@ class Stabbity
         DRC.fix_standing
         DRC.hide?
       when /What are you trying/
-        DRC.bput(retrieve_verb, 'You pick up', 'suddenly leaps')
+        retrieve_thrown
         waitrt?
       when /Roundtime/, /\[You're /
         waitrt?
-        DRC.bput(retrieve_verb, 'You pick up', 'suddenly leaps')
+        retrieve_thrown
         return if npc_dead?
 
         waitrt?
       end
+    end
+  end
+
+  def retrieve_thrown
+    retrieve_verb = thrown_retrieve_verb
+
+    bonded_invoke_success = [ # standard and custom invoke messages
+      /reuniting you with your lost belonging/,
+      /In its place, you are left with your/,
+      /returning .* to your/,
+      /depositing .* back to the rightful owner/,
+      /Your .* appears within reach/,
+      /you are reunited with your/,
+      /You catch/,
+      /A tiny ripplegate gurgles into being near your/
+    ]
+
+    case DRC.bput(retrieve_verb,
+                  /^You are already holding/,
+                  /^You pick up/,
+                  /^You get/,
+                  /^What were you/,
+                  /^You don't have any bonds to invoke/,
+                  *bonded_invoke_success)
+    when 'What were you'
+      # Workaround for a game bug when you lob an unblessed weapon at a noncorporeal mob
+      # The weapon lands on the ground, not in the 'at feet' slot, and 'my' will not work
+      DRC.bput("get #{@thrown_weapon}", 'You pick up', 'You get')
     end
   end
 
@@ -242,7 +280,7 @@ class Stabbity
       echo("*** Switching to thrown weapon ***") if @debug
       use_weapon('thrown')
     elsif @current_weapon_type != 'preferred'
-      echo("*** Switching to preferred weapon") if @debug
+      echo("*** Switching to preferred weapon ***") if @debug
       use_weapon('preferred')
       DRC.hide?
     end
@@ -312,7 +350,7 @@ class Stabbity
   def dodge_arena_trap
     if @arena_trap
       echo("*** Performing #{@arena_trap} to avoid trap ***") if @debug
-      DRC.bput(@arena_trap, 'You set yourself up to')
+      DRC.bput(@arena_trap, 'You set yourself up to', 'No need for that')
       @arena_trap = nil
     end
   end
@@ -321,6 +359,15 @@ class Stabbity
     fput("loot #{@settings.custom_loot_type}")
     pause 1
     # todo/maybe -- pick up loot
+  end
+
+  def check_buffs
+    DRCA.do_buffs(@settings, 'stabbity')
+  end
+
+  def check_wands
+    start_script('wand-watcher', ['once', 0])
+    pause 0.5 while Script.running?('wand-watcher')
   end
 end
 
