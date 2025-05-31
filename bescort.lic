@@ -354,6 +354,15 @@ class Bescort
           exit
         end
         DRC.bput("command #{type} to #{speed}", /You command your/)
+      when /phoenix feather/i # This section is for https://elanthipedia.play.net/Item:Phoenix_feather_strung_upon_a_burning_goldfyre_chain_set_with_anloral_beads
+        DRCI.remove_item?(@flying_mount_item)
+        DRCI.get_item_if_not_held?(@flying_mount_item)
+        case DRC.bput("light my #{@flying_mount_item}", /You reverently cradle a phoenix feather/, /What were you referring to/)
+        when /What were you referring/
+          DRC.message("Can't mount your #{type}, where is it?")
+          exit
+        end
+        DRC.bput("command phoenix to #{speed}", /You signal the starfire phoenix to speed up/)
       when /cloud/i # This section is for mounts with different nouns than their activating item. May need to add more activation matches.
         DRCI.remove_item?(@flying_mount_item)
         DRCI.get_item_if_not_held?(@flying_mount_item)
@@ -376,6 +385,11 @@ class Bescort
         DRC.bput('dismount', /Your .* floats down to the ground/, /You climb off/)
         DRC.bput("roll #{type}", /You roll up/, /You can't roll/)
         DRCI.put_away_item?(type)
+      when /phoenix feather/i
+        DRC.bput("snuff phoenix", /You beseech Murrula's grace as you beckon/)
+        DRCI.wear_item?(@flying_mount_item)
+        DRCI.put_away_item?(@flying_mount_item) if checkright
+        DRCI.put_away_item?(@flying_mount_item) if checkleft
       when /cloud/i
         DRC.bput("#{@flying_mount_dismount} #{type}", /With a gesture,/)
         DRCI.wear_item?(@flying_mount_item)
@@ -439,6 +453,7 @@ class Bescort
           dseen = true
           break
         end
+        DRC.bput("pull rope", /^You grasp onto the woven rope and heave downward with all your might/)
       end
 
       # Light tapestry
@@ -449,6 +464,7 @@ class Bescort
           lseen = true
           break
         end
+        DRC.bput("pull rope", /^You grasp onto the woven rope and heave downward with all your might/)
       end
 
       # Back to coffin
@@ -1140,7 +1156,7 @@ class Bescort
     if @flying_mount
       move_fast = true
       case @flying_mount
-      when /broom|dirigible|carpet|rug/i
+      when /broom|dirigible|carpet|rug|phoenix feather/i
         use_flying_mount(@flying_mount, 'mount', 'glide')
       when /cloud/i
         use_flying_mount(@flying_mount, 'mount', 'drift')
@@ -1228,7 +1244,12 @@ class Bescort
     manual_go2(start)
     moveset = north ? %w[north northwest northeast] : %w[south southwest southeast]
     if @flying_mount
-      use_flying_mount(@flying_mount, 'mount')
+      case @flying_mount
+      when /phoenix feather/i
+        use_flying_mount(@flying_mount, 'mount', 'streak')
+      else
+        use_flying_mount(@flying_mount, 'mount')
+      end
       move 'go river'
       if north
         move n
@@ -1540,6 +1561,8 @@ class Bescort
         use_flying_mount(@flying_mount, 'mount', 'skim')
       when /cloud/i
         use_flying_mount(@flying_mount, 'mount', 'hover')
+      when /phoenix feather/i
+        use_flying_mount(@flying_mount, 'mount', 'fly')
       else
         DRC.message("#{@flying_mount} is not a valid type of flying mount.")
         exit
