@@ -1873,7 +1873,7 @@ class Trade
       outfitting_type = should_knit? ? 'knitting' : 'sewing'
       outfitting_mat = should_knit? ? 'wool' : 'burlap'
       @current_materials[@outfitting_material_type] -= recipe['volume']
-      start_script('sew', ['stow', outfitting_type, recipe['chapter'].to_s, recipe['name'], outfitting_mat].map { |arg| arg =~ /\s/ ? "\"#{arg}\"" : arg }, recipe['noun'])
+      start_script('sew', ['stow', outfitting_type, recipe['chapter'].to_s, recipe['name'], outfitting_mat, recipe['noun']].map { |arg| arg =~ /\s/ ? "\"#{arg}\"" : arg })
     end
   end
 
