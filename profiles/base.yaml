@@ -1114,6 +1114,8 @@ caravan_training_skills:
   # Engineering: 200
 # recipe overrides for shaping and outfitting (knitting only still). If defined, and above circle 35, this will be used to turn in completed goods for workorders. See wiki above.
 caravan_recipes:
+# Do you want to use Trading tasks while delivering contracts?
+trade_tasks: true
 
 # Lumber settings
 forests_to_chop:

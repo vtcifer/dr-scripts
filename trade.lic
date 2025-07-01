@@ -76,6 +76,7 @@ class Trade
     Flags.add('caravan-arrived', /^Your .*, following you/)
     Flags.add('trade-bescort', '^The sand barge pulls into dock', '^The .* reaches (the|its) dock and its crew ties the (barge|ferry) off', '^You come to a very soft stop')
     Flags.add('trade-barge', '^A bargeman signals to the driver')
+    Flags.add('trade-task', /You are certain you have concluded your TASK arrangement with the Traders' Guild/, /^The clerks responsible for assigning contracts across the Trade routes of .+ have asked you to complete 0 more/)
 
     # TRAINING
     @gem_pouch_adjective = @settings.gem_pouch_adjective
@@ -108,6 +109,9 @@ class Trade
     @current_grass_count = 100
     @times_outfitting = 0
     @times_engineering = 0
+    @task_status = nil
+    @task_finish_time = Time.now - 3600
+    @use_tasks = @settings.trade_tasks
 
     @box = @settings.picking_lockbox
     @worn_lockbox = @settings.picking_worn_lockbox
@@ -247,6 +251,7 @@ class Trade
     take_caravan_to(@current_caravan_destination)
     deliver_contract
     check_wounds
+    check_task
   end
 
   def speed_up_caravan
@@ -303,6 +308,7 @@ class Trade
         town_business
         DRC.wait_for_script_to_complete('buff', ['trade'])
         get_contract
+        check_task
       end
       DRCT.walk_to(find_closest_id('trader_outpost'))
       feed_caravan
@@ -317,6 +323,7 @@ class Trade
       deliver_contract
       pay_dues
       check_wounds
+      check_task
       @closeup = true if @time_to_end && Time.now > @time_to_end
     end
   end
@@ -349,9 +356,20 @@ class Trade
     Room[247].timeto.delete('989')
     Room[3766].timeto['6872'] = 600.0
     Room[6872].timeto['6872'] = 600.0
+    # Shard ladders
+    Room[2525].timeto.delete('9588')
+    Room[2516].timeto.delete('2950')
+    # Segoltha
+    Room[1891].timeto.delete('1894')
+    Room[15885].timeto.delete('15886')
+    Room[19458].timeto.delete('1894')
+    Room[19074].timeto.delete('19075')
+    # Faldesu
+    Room[1369].timeto.delete('1370')
+    Room[472].timeto.delete('473')
   end
 
-  def restore_certain_transport
+  def self.restore_certain_transport
     # THEREN ROPE BRIDGE
     Room[8637].timeto['8650'] = 180.0
     Room[8650].timeto['8637'] = 180.0
@@ -360,6 +378,17 @@ class Trade
     Room[247].timeto['989'] = 600.0
     Room[3766].timeto['6872'] = 799.0
     Room[6872].timeto['6872'] = 799.0
+    # Shard ladders
+    Room[2525].timeto['9588'] = 0.2
+    Room[2516].timeto['2950'] = 0.2
+    # Segoltha
+    Room[15885].timeto['15886'] = 0.2
+    Room[19458].timeto['1894'] = 0.2
+    Room[19074].timeto['19075'] = 0.2
+    Room[1891].timeto['1894'] = 0.2
+    # Faldesu
+    Room[1369].timeto['1370'] = 0.2
+    Room[472].timeto['473'] = 0.2
   end
 
   def setup_town_data # builds @trading_towns from town_data
@@ -425,7 +454,7 @@ class Trade
       DRC.message('The script has encountered an error! Please put in an issue at https://github.com/elanthia-online/dr-scripts/issues')
       DRC.message("Current Room is #{Room.current.id}, closest town is #{find_closest_id('trader_outpost', true)}, and emergency_town is #{@emergency_delivery_town}, if any.")
     end
-    restore_certain_transport
+    Trade.restore_certain_transport
   end
 
   def check_for_emergency_delivery # go towards a town if you have a certain amount of business there
@@ -446,7 +475,7 @@ class Trade
         end
       end
     end
-    restore_certain_transport
+    Trade.restore_certain_transport
   end
 
   def closer_to_emergency_town # from the set of all outposts closer than you to the emergency_town, return the one closest to you that you have business in
@@ -651,6 +680,7 @@ class Trade
 
     track_caravan
     DRC.bput("go #{@caravan.adjective} #{@caravan.noun}", 'You open the door')
+    pause 0.5
   end
 
   def be_outside_caravan # call whenever you need to be outside the caravan
@@ -1045,7 +1075,7 @@ class Trade
     save_caravan_position(Room.current.id)
     command_caravan?('wait')
     training_cleanup
-    restore_certain_transport
+    Trade.restore_certain_transport
   end
 
   def wait_for_caravan(wait_time = 6) # The wait time is how long to wait until doing noisy RECALL CARAVANs.  A grace period for the caravan to arrive quietly.
@@ -1101,6 +1131,41 @@ class Trade
       return true if @trading_towns[town_name]['contracts_to'] > 0 || @trading_towns[town_name]['contracts_from'].zero?
     end
     false
+  end
+
+  def check_task
+    return unless @use_tasks
+    if @task_status.nil?
+      case DRC.bput('task', 'The clerks responsible for assigning contracts across the Trade routes of ', 'You are not currently on a task')
+      when 'The clerks responsible for assigning contracts across the Trade routes of '
+        @task_status = 'active'
+      else
+        @task_status = 'inactive'
+      end
+    end
+    finish_task if Flags['trade-task']
+    get_task if @task_status == 'inactive' && Time.now - @task_finish_time >= 1200
+  end
+
+  def finish_task
+    Flags.reset('trade-task')
+    DRCT.walk_to(find_closest_id('shipment_clerk'))
+    DRC.bput('ask clerk about task finish', 'clerk hands you')
+    @task_status = 'inactive'
+    @task_finish_time = Time.now()
+    check_task unless @closeup
+  end
+
+  def get_task
+    DRCT.walk_to(find_closest_id('shipment_clerk'))
+    @task_status = 'active'
+    Flags.reset('trade-task')
+    case DRC.bput('ask clerk for task', 'You may accept by typing ACCEPT TASK, or decline by typing DECLINE TASK', 'You are already on a task', 'Thanks for your willingness', 'I am sorry, you must wait before I can give you a task')
+    when 'You may accept by typing ACCEPT TASK, or decline by typing DECLINE TASK'
+      DRC.bput('accept task', 'clerk exclaims,')
+    when 'Thanks for your willingness', 'I am sorry, you must wait before I can give you a task'
+      @task_status = 'inactive'
+    end
   end
 
   def get_contract
@@ -2247,6 +2312,7 @@ class Trade
   def magic_cleanup
     return if @training_spells.empty?
 
+    DRC.bput('prepare symbiosis', 'You recall the exact details of the', 'But you\'ve already prepared', 'Please don\'t do that here')
     DRC.bput('release symbiosis', "But you haven't", 'You release', 'Repeat this command')
     DRC.bput('release spell', 'You let your concentration lapse', "You aren't preparing a spell") unless checkprep == 'None'
     DRC.bput('release mana', 'You release all', "You aren't harnessing any mana")
@@ -2368,14 +2434,8 @@ before_dying do
   Flags.delete('trade-gondola-arrive')
   Flags.delete('trade-barge')
   Flags.delete('trade-bescort')
-  # THEREN ROPE BRIDGE
-  Room[8637].timeto['8650'] = 180.0 unless Room[8637].timeto['8650']
-  Room[8650].timeto['8637'] = 180.0 unless Room[8650].timeto['8637']
-  # AIRSHIP
-  Room[989].timeto['247'] = 600.0 unless Room[989].timeto['247']
-  Room[247].timeto['989'] = 600.0 unless Room[247].timeto['989']
-  Room[3766].timeto['6872'] = 799.0
-  Room[6872].timeto['6872'] = 799.0
+  Flags.delete('trade-task')
+  Trade.restore_certain_transport
   clear_hometown
 end
 
