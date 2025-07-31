@@ -768,9 +768,9 @@ hunting_zones:
   - 1585
   # https://elanthipedia.play.net/Rock_Troll_(1)                           60-73
   rock_trolls:
-  #- 8945 do not use due to players caught on CLIMB BARRICADE
-  #- 8955 do not use due to enviromental ROCK that will break STOW commands
-  - 8946
+  # - 8945 # do not use due to players caught on CLIMB BARRICADE
+  # - 8955 # do not use due to enviromental ROCK that will break STOW commands
+  # - 8946 # Nothing seems to spawn in this room
   - 8947
   - 8954
   - 8948
