@@ -1908,8 +1908,8 @@ hunting_zones:
   # Can pick you up and drop you, massive bleders, broken legs
   #  - Use wings to help assist in avoiding this
   bone_wyverns:
-  - 13121
   - 13120
+  - 13121
   - 13119
   - 13118
   - 13123
