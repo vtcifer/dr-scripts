@@ -36,7 +36,6 @@ end
 rooms.each do |id|
   pause 20 if reget(5, 'You try, but')
   break if DRRoom.room_objs.any? { |x| /Darkbox/ =~ x }
-  break if Map.last_seen_objects.include?('Darkbox')
 
   DRCT.walk_to(id)
 end
