@@ -169,4 +169,3 @@ before_dying do
 end
 $ALMANAC.run
 $ALMANAC = nil
-
