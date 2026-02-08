@@ -511,6 +511,9 @@ class SigilHarvest
     when /shard/i
       scroll_room = 14772
       scroll_price = 90 # dokora
+    when /hib|hibbles|hibarnhvidar/i
+      scroll_room = 15522
+      scroll_price = 90 # dokora
     end
 
     DRC.message("Buying scrolls from #{Room[scroll_room].title}") if @debug
