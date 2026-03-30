@@ -169,7 +169,7 @@ class Bescort
         { name: 'mode', options: %w[nomads westanuryn slavers exit], description: 'Where to?' }
       ],
       [
-        { name: 'oasis', regex: /velaka_dunes/i, description: "Wander the velaka dune maze between the oasis, sandbarge, yeehars (canyon) and desert maze to hvaral (valley)"},
+        { name: 'velaka_dunes', regex: /velaka_dunes/i, description: "Wander the velaka dune maze between the oasis, sandbarge, yeehars (canyon) and desert maze to hvaral (valley)" },
         { name: 'mode', options: %w[oasis barge canyon valley], description: "Which part of the maze?" }
       ],
       [
