@@ -522,12 +522,14 @@ hunting_zones:
   # https://elanthipedia.play.net/Blood_dryad                              25-40
   # There are Blood Dryads and Blood Nyads in this area.
   blood_dryad:
-  - 10056
-  - 10055
-  - 10054
-  - 10053
-  - 10052
-  - 10051
+  - 9358
+  - 9359
+  - 9360
+  - 9361
+  - 9362
+  - 9363
+  - 9364
+  - 19202
   # https://elanthipedia.play.net/Cougar                                   30-49
   cougars_forest_of_night:
   - 9352
@@ -663,6 +665,15 @@ hunting_zones:
   - 8461
   - 8458
   - 8459
+  # https://elanthipedia.play.net/Putrid_tree_snake                       100-130
+  putrid_tree_snakes:
+  - 9366
+  - 9367
+  - 10054
+  - 10055
+  - 10056
+  - 10057
+  - 19201
   # new mob - critter level 23-27                                          120-160
   # You'll need to remove gerbil's from the ignored_npcs: list otherwise it
   # just sit there not hunting.  
@@ -1557,6 +1568,13 @@ hunting_zones:
   young_prereni_stones:
   - 12276
   - 12277
+  # https://elanthipedia.play.net/Small_tree_sloth                       150-200
+  small_tree_sloths:
+  - 51821
+  - 51822
+  - 51823
+  - 51824
+  - 51825
   # https://elanthipedia.play.net/Windbag_(1)                            150-250
   # https://elanthipedia.play.net/Sylph_(2)                              150-250
   # Estate Holder Only - Construct
