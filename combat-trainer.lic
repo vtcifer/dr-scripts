@@ -3351,7 +3351,7 @@ class TrainerProcess
       end
     when /^Stealth$/i
       hide_action(game_state)
-     when /^Confidence$/i
+    when /^Confidence$/i
       if DRStats.guild == 'Thief'
         hide_action(game_state)
       else
