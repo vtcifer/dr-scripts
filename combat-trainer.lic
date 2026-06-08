@@ -3351,6 +3351,13 @@ class TrainerProcess
       end
     when /^Stealth$/i
       hide_action(game_state)
+     when /^Confidence$/i
+      if DRStats.guild == 'Thief'
+        hide_action(game_state)
+      else
+        DRC.message("Confidence is only for thieves, removing from training_abilities.")
+        @training_abilities.delete('Confidence')
+      end
     when /^(Ret|Retreat) Stealth$/i
       DRC.retreat
       hide_action(game_state)
