@@ -1582,7 +1582,7 @@ class Forge
   def finalize_item
     case @finish
     when /log/
-      DRCC.logbook_item('engineering', @item, @bag)
+      DRCC.logbook_item('forging', @item, @bag)
       info_log("#{@item} logged to engineering logbook.")
     when /stow/
       if DRCC.stow_crafting_item(@item, @bag, @forging_belt)
