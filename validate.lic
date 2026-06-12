@@ -194,7 +194,7 @@ class DRYamlValidator
   def assert_that_gem_pouch_adj_is_valid(settings)
     error("The setting gem_pouch_adjective: should be exactly 1 word") if settings.gem_pouch_adjective.include?(' ')
     error("Do not use the word 'gem' in your gem_pouch_adjective:") if settings.gem_pouch_adjective.include?('gem')
-    
+
     valid_gem_pouch_adjectives = %w(black blue dark fuzzy green indigo purple red soft suede)
     error("You have set your gem_pouch_adjective to #{settings.gem_pouch_adjective}.  Valid gem pouch adjectives are #{valid_gem_pouch_adjectives.join(', ')}") if !valid_pouch_adjective.include?(settings.gem_pouch_adjective)
   end
