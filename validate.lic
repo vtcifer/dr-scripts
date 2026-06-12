@@ -191,6 +191,14 @@ class DRYamlValidator
     warn('Full pouch container cannot be the same as the spare pouch container')
   end
 
+  def assert_that_gem_pouch_adj_is_valid(settings)
+    error("The setting gem_pouch_adjective: should be exactly 1 word" if settings.gem_pouch_adjective.include?(' ')
+    error("Do not use the word 'gem' in your gem_pouch_adjective:") if settings.gem_pouch_adjective.include?('gem')
+    
+    valid_gem_pouch_adjectives = %w(black blue dark fuzzy green indigo purple red soft suede)
+    error("You have set your gem_pouch_adjective to #{settings.gem_pouch_adjective}.  Valid gem pouch adjectives are #{valid_gem_pouch_adjectives.join(', ')}") if !valid_pouch_adjective.include?(settings.gem_pouch_adjective)
+  end
+
   def assert_that_aspects_are_neutral_if_not_using_altars(settings)
     return if settings.use_favor_altars
     return if @neutral_aspects.include?(settings.favor_god.capitalize)
